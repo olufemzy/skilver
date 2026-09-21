@@ -1,137 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { VerificationStatus } from '@prisma/client'
-import prisma from '@/lib/prisma'
+import providers from '../../../providers.json'
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams
 
-  const query = params.get('q') || ''
-  const category = params.get('category') || ''
+  const query = (params.get('q') || '').toLowerCase()
+  const category = (params.get('category') || '').toLowerCase()
   const verified = params.get('verified') === 'true'
   const available = params.get('available') === 'true'
   const minRating = Number(params.get('minRating')) || 0
-  const serviceType = params.get('serviceType') || ''
   const page = Number(params.get('page')) || 1
   const pageSize = 18
 
-  const where = {
-    user: {
-      isSuspended: false,
-      isActive: true,
-      ...(query
-        ? {
-            OR: [
-              { name: { contains: query, mode: 'insensitive' as const } },
-              { location: { contains: query, mode: 'insensitive' as const } },
-            ],
-          }
-        : {}),
-    },
+  let filteredProviders = providers.filter((provider: any) => {
+    const matchesQuery =
+      !query ||
+      provider.name?.toLowerCase().includes(query) ||
+      provider.location?.toLowerCase().includes(query) ||
+      provider.university?.toLowerCase().includes(query) ||
+      provider.department?.toLowerCase().includes(query) ||
+      provider.title?.toLowerCase().includes(query) ||
+      provider.skills?.some((skill: string) =>
+        skill.toLowerCase().includes(query)
+      )
 
-    ...(verified
-        ? { verificationStatus: VerificationStatus.VERIFIED }
-        : {}),
-    ...(available ? { isAvailable: true } : {}),
-    ...(minRating > 0
-      ? { averageRating: { gte: minRating } }
-      : {}),
+    const matchesCategory =
+      !category ||
+      provider.category?.toLowerCase() === category
 
-    ...(query
-      ? {
-          OR: [
-            {
-              university: {
-                contains: query,
-                mode: 'insensitive' as const,
-              },
-            },
-            {
-              department: {
-                contains: query,
-                mode: 'insensitive' as const,
-              },
-            },
-            {
-              skills: {
-                some: {
-                  skill: {
-                    name: {
-                      contains: query,
-                      mode: 'insensitive' as const,
-                    },
-                  },
-                },
-              },
-            },
-            {
-              services: {
-                some: {
-                  title: {
-                    contains: query,
-                    mode: 'insensitive' as const,
-                  },
-                },
-              },
-            },
-          ],
-        }
-      : {}),
-  }
+    const matchesVerified =
+      !verified || provider.verified === true
 
-  const [total, profiles] = await Promise.all([
-    prisma.providerProfile.count({ where }),
+    const matchesAvailable =
+      !available || provider.available === true
 
-    prisma.providerProfile.findMany({
-      where,
+    const matchesRating =
+      !minRating || Number(provider.rating) >= minRating
 
-      include: {
-        user: true,
+    return (
+      matchesQuery &&
+      matchesCategory &&
+      matchesVerified &&
+      matchesAvailable &&
+      matchesRating
+    )
+  })
 
-        skills: {
-          include: {
-            skill: true,
-          },
-          take: 5,
-        },
+  const total = filteredProviders.length
 
-        services: {
-          orderBy: {
-            startPrice: 'asc',
-          },
-          take: 1,
-        },
-      },
+  const start = (page - 1) * pageSize
+  const end = start + pageSize
 
-      orderBy: [
-        {
-          verificationStatus: 'asc',
-        },
-        {
-          averageRating: 'desc',
-        },
-      ],
+  filteredProviders = filteredProviders.slice(start, end)
 
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-  ])
-
-  const data = profiles.map((p: any) => ({
-    id: p.id,
-    userId: p.userId,
-    name: p.user.name,
-    avatarUrl: p.user.avatarUrl,
-    location: p.user.location,
-    university: p.university,
-    department: p.department,
-    level: p.level,
-    verificationStatus: p.verificationStatus,
-    averageRating: p.averageRating,
-    totalReviews: p.totalReviews,
-    jobsCompleted: p.jobsCompleted,
-    isAvailable: p.isAvailable,
-    skills: p.skills.map((s: any) => s.skill.name),
-    startingPrice: p.services[0]?.startPrice ?? null,
+  const data = filteredProviders.map((provider: any) => ({
+    id: provider.id,
+    userId: provider.id,
+    name: provider.name,
+    avatarUrl: provider.avatar || null,
+    location: provider.location || null,
+    university: provider.university || null,
+    department: provider.department || null,
+    level: provider.level || null,
+    verificationStatus: provider.verified ? 'VERIFIED' : 'PENDING',
+    averageRating: Number(provider.rating) || 0,
+    totalReviews: Number(provider.reviews) || 0,
+    jobsCompleted: Number(provider.jobs) || 0,
+    isAvailable: provider.available === true,
+    skills: provider.skills || [],
+    startingPrice: provider.price ? Number(provider.price) : null,
   }))
 
   return NextResponse.json({
