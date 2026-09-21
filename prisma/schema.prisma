@@ -1,0 +1,490 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  STUDENT
+  CUSTOMER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum JobStatus {
+  DRAFT
+  OPEN
+  IN_PROGRESS
+  SUBMITTED
+  REVISION_REQUESTED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum TransactionStatus {
+  PENDING
+  ESCROW
+  RELEASED
+  REFUNDED
+  DISPUTED
+}
+
+enum ServiceType {
+  REMOTE
+  PHYSICAL
+  BOTH
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  password      String
+  name          String
+  phone         String?
+  avatarUrl     String?
+  location      String?
+  accountType   AccountType
+  emailVerified DateTime?
+  isActive      Boolean     @default(true)
+  isSuspended   Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  providerProfile  ProviderProfile?
+  customerProfile  CustomerProfile?
+  adminProfile     AdminProfile?
+  sentMessages     Message[]            @relation("SentMessages")
+  receivedMessages Message[]            @relation("ReceivedMessages")
+  notifications    Notification[]
+  reportsMade      Dispute[]            @relation("ReportsMade")
+  reportsAgainst   Dispute[]            @relation("ReportsAgainst")
+  sessions         Session[]
+
+  @@index([email])
+  @@index([accountType])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ProviderProfile {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  bio                String?
+  university         String?
+  faculty            String?
+  department         String?
+  level              String?
+  matricId           String?
+  graduationYear     Int?
+  verificationStatus VerificationStatus @default(PENDING)
+  verificationDocs   String[]
+  verificationNote   String?
+  verifiedAt         DateTime?
+  responseRate       Float              @default(0)
+  completionRate     Float              @default(0)
+  totalEarnings      Float              @default(0)
+  jobsCompleted      Int                @default(0)
+  averageRating      Float              @default(0)
+  totalReviews       Int                @default(0)
+  isAvailable        Boolean            @default(true)
+  availability       Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills       ProviderSkill[]
+  services     Service[]
+  portfolioItems PortfolioItem[]
+  applications Application[]
+  contracts    Contract[]    @relation("ProviderContracts")
+  reviewsReceived Review[]   @relation("ProviderReviews")
+  reviewsGiven  Review[]     @relation("CustomerReviewsByProvider")
+
+  @@index([verificationStatus])
+  @@index([averageRating])
+}
+
+model CustomerProfile {
+  id           String       @id @default(cuid())
+  userId       String       @unique
+  customerType CustomerType @default(INDIVIDUAL)
+  businessName String?
+  industry     String?
+  businessDesc String?
+  totalSpent   Float        @default(0)
+  jobsPosted   Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs          Job[]
+  contracts     Contract[] @relation("CustomerContracts")
+  savedProviders SavedProvider[]
+  reviewsGiven  Review[]   @relation("CustomerReviews")
+  reviewsReceived Review[] @relation("ProviderReviewsByCustomer")
+
+  @@index([customerType])
+}
+
+model AdminProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  role      String   @default("moderator")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  parentId    String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children Category[] @relation("SubCategories")
+  skills   Skill[]
+  jobs     Job[]
+  services Service[]
+
+  @@index([slug])
+  @@index([parentId])
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  categoryId  String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  category  Category        @relation(fields: [categoryId], references: [id])
+  providers ProviderSkill[]
+  jobs      JobSkill[]
+
+  @@index([categoryId])
+  @@index([slug])
+}
+
+model ProviderSkill {
+  id         String   @id @default(cuid())
+  providerId String
+  skillId    String
+  experience String?
+  createdAt  DateTime @default(now())
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  skill    Skill           @relation(fields: [skillId], references: [id])
+
+  @@unique([providerId, skillId])
+}
+
+model Service {
+  id          String      @id @default(cuid())
+  providerId  String
+  categoryId  String
+  title       String
+  description String
+  startPrice  Float
+  maxPrice    Float?
+  currency    String      @default("NGN")
+  serviceType ServiceType @default(BOTH)
+  deliveryDays Int?
+  isActive    Boolean     @default(true)
+  viewCount   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  provider  ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  category  Category        @relation(fields: [categoryId], references: [id])
+  images    ServiceImage[]
+
+  @@index([providerId])
+  @@index([categoryId])
+  @@index([startPrice])
+}
+
+model ServiceImage {
+  id        String   @id @default(cuid())
+  serviceId String
+  url       String
+  altText   String?
+  sortOrder Int      @default(0)
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+model Job {
+  id             String      @id @default(cuid())
+  customerId     String
+  categoryId     String
+  title          String
+  description    String
+  budget         Float
+  currency       String      @default("NGN")
+  serviceType    ServiceType @default(BOTH)
+  location       String?
+  deadline       DateTime?
+  providersNeeded Int        @default(1)
+  status         JobStatus   @default(OPEN)
+  attachments    String[]
+  isAiReviewed   Boolean     @default(false)
+  aiFlagReason   String?
+  viewCount      Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  customer     CustomerProfile @relation(fields: [customerId], references: [id])
+  category     Category        @relation(fields: [categoryId], references: [id])
+  skills       JobSkill[]
+  applications Application[]
+  contract     Contract?
+
+  @@index([customerId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model JobSkill {
+  id      String @id @default(cuid())
+  jobId   String
+  skillId String
+
+  job   Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  @@unique([jobId, skillId])
+}
+
+model Application {
+  id           String            @id @default(cuid())
+  jobId        String
+  providerId   String
+  proposal     String
+  price        Float
+  currency     String            @default("NGN")
+  deliveryDays Int
+  experience   String?
+  portfolioLinks String[]
+  status       ApplicationStatus @default(PENDING)
+  rejectionNote String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  job      Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, providerId])
+  @@index([jobId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model Contract {
+  id           String    @id @default(cuid())
+  jobId        String    @unique
+  customerId   String
+  providerId   String
+  agreedPrice  Float
+  currency     String    @default("NGN")
+  startDate    DateTime  @default(now())
+  deadline     DateTime?
+  status       JobStatus @default(IN_PROGRESS)
+  workFiles    String[]
+  workMessage  String?
+  submittedAt  DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  job         Job             @relation(fields: [jobId], references: [id])
+  customer    CustomerProfile @relation("CustomerContracts", fields: [customerId], references: [id])
+  provider    ProviderProfile @relation("ProviderContracts", fields: [providerId], references: [id])
+  transaction Transaction?
+  review      Review?
+
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+}
+
+model Transaction {
+  id                String            @id @default(cuid())
+  contractId        String            @unique
+  totalAmount       Float
+  platformFee       Float
+  providerAmount    Float
+  currency          String            @default("NGN")
+  status            TransactionStatus @default(PENDING)
+  paystackRef       String?
+  paystackData      Json?
+  paidAt            DateTime?
+  releasedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Review {
+  id              String   @id @default(cuid())
+  contractId      String   @unique
+  reviewerId      String
+  revieweeId      String
+  rating          Int
+  comment         String?
+  isFromCustomer  Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id])
+
+  providerProfile ProviderProfile? @relation(
+    "ProviderReviews",
+    fields: [revieweeId],
+    references: [userId],
+    map: "Review_revieweeId_provider_fkey"
+  )
+
+  customerProfile CustomerProfile? @relation(
+    "CustomerReviews",
+    fields: [reviewerId],
+    references: [userId],
+    map: "Review_reviewerId_customer_fkey"
+  )
+
+  providerReviewsByCustomer ProviderProfile? @relation(
+    "CustomerReviewsByProvider",
+    fields: [reviewerId],
+    references: [userId],
+    map: "Review_reviewerId_provider_fkey"
+  )
+
+  customerReviewsByProvider CustomerProfile? @relation(
+    "ProviderReviewsByCustomer",
+    fields: [revieweeId],
+    references: [userId],
+    map: "Review_revieweeId_customer_fkey"
+  )
+
+  @@index([contractId])
+  @@index([revieweeId])
+}
+
+model PortfolioItem {
+  id          String   @id @default(cuid())
+  providerId  String
+  title       String
+  description String?
+  category    String?
+  mediaUrls   String[]
+  links       String[]
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+}
+
+model Message {
+  id           String   @id @default(cuid())
+  senderId     String
+  receiverId   String
+  contractId   String?
+  content      String
+  attachments  String[]
+  isRead       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  type      String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model Dispute {
+  id           String   @id @default(cuid())
+  reporterId   String
+  reportedId   String
+  contractId   String?
+  type         String
+  description  String
+  evidence     String[]
+  status       String   @default("OPEN")
+  resolution   String?
+  resolvedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reporter User @relation("ReportsMade", fields: [reporterId], references: [id])
+  reported User @relation("ReportsAgainst", fields: [reportedId], references: [id])
+
+  @@index([status])
+  @@index([reportedId])
+}
+
+model SavedProvider {
+  id         String   @id @default(cuid())
+  customerId String
+  providerId String
+  createdAt  DateTime @default(now())
+
+  customer CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, providerId])
+}
