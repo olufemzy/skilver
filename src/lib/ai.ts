@@ -32,14 +32,14 @@ export async function matchProvidersToJob(jobId: string, limit = 10) {
     Category: ${job.category.name}
     Description: ${job.description}
     Budget: ${job.budget} ${job.currency}
-    Required skills: ${job.skills.map(s => s.skill.name).join(', ')}
+    Required skills: ${job.skills.map((s: any) => s.skill.name).join(', ')}
     Location: ${job.location || 'Remote'}
   `
 
-  const providersContext = providers.map(p => ({
+  const providersContext = providers.map((p: any) => ({
     id: p.id,
     name: p.user.name,
-    skills: p.skills.map(s => s.skill.name),
+    skills: p.skills.map((s: any) => s.skill.name),
     rating: p.averageRating,
     completedJobs: p.jobsCompleted,
     location: p.user.location,
@@ -71,7 +71,7 @@ export async function matchProvidersToJob(jobId: string, limit = 10) {
       .slice(0, limit)
       .map((m: any) => ({
         ...m,
-        provider: providers.find(p => p.id === m.id),
+        provider: providers.find((p: any) => p.id === m.id),
       }))
       .filter((m: any) => m.provider)
   } catch {
@@ -104,18 +104,18 @@ export async function recommendJobsToProvider(providerId: string, limit = 10) {
     orderBy: { createdAt: 'desc' },
   })
 
-  const providerSkills = provider.skills.map(s => s.skill.name)
-  const scored = jobs.map(job => {
-    const jobSkills = job.skills.map(s => s.skill.name)
-    const skillMatch = jobSkills.filter(s => providerSkills.includes(s)).length
+  const providerSkills = provider.skills.map((s: any) => s.skill.name)
+  const scored = jobs.map((job: any) => {
+    const jobSkills = job.skills.map((s: any) => s.skill.name)
+    const skillMatch = jobSkills.filter((s: any) => providerSkills.includes(s)).length
     const score = skillMatch * 20 + (job.budget > 10000 ? 10 : 0)
     return { job, score }
   })
 
   return scored
-    .sort((a, b) => b.score - a.score)
+    .sort((a: any, b: any) => b.score - a.score)
     .slice(0, limit)
-    .map(s => s.job)
+    .map((s: any) => s.job)
 }
 
 export async function generateProfileSuggestions(bio: string, skills: string[]): Promise<string> {

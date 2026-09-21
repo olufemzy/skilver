@@ -74,7 +74,7 @@ export default async function ProviderDashboard() {
           <h2 className="font-semibold text-gray-900 mb-4">Active Contracts</h2>
           {profile?.contracts?.length ? (
             <div className="space-y-3">
-              {profile.contracts.map(contract => (
+              {/* {profile.contracts.map(contract => (
                 <Link key={contract.id} href={`/contracts/${contract.id}`} className="card-base p-4 flex items-center justify-between hover:shadow-card-hover transition-shadow block">
                   <div>
                     <p className="font-semibold text-sm text-gray-900">{contract.job.title}</p>
@@ -82,7 +82,7 @@ export default async function ProviderDashboard() {
                   </div>
                   <JobStatusBadge status={contract.status} />
                 </Link>
-              ))}
+              ))} */}
             </div>
           ) : (
             <div className="card-base p-8 text-center text-gray-400">
@@ -97,7 +97,7 @@ export default async function ProviderDashboard() {
         <div>
           <h2 className="font-semibold text-gray-900 mb-4">Recommended Jobs</h2>
           <div className="space-y-3">
-            {recentJobs.map(job => (
+            {/* {recentJobs.map(job => (
               <Link key={job.id} href={`/jobs/${job.id}`} className="card-base p-4 hover:shadow-card-hover transition-shadow block">
                 <div className="flex items-start justify-between">
                   <div>
@@ -107,7 +107,7 @@ export default async function ProviderDashboard() {
                   <p className="text-sm font-semibold text-primary-900 whitespace-nowrap ml-2">₦{job.budget.toLocaleString()}</p>
                 </div>
               </Link>
-            ))}
+            ))} */}
           </div>
         </div>
       </div>

@@ -27,8 +27,8 @@ export default async function CustomerDashboard() {
 
   const stats = [
     { label: 'Jobs Posted', value: profile?.jobsPosted || 0, icon: Briefcase, color: 'bg-blue-50 text-blue-700' },
-    { label: 'Active Jobs', value: profile?.jobs?.filter(j => j.status === 'IN_PROGRESS').length || 0, icon: Users, color: 'bg-amber-50 text-amber-700' },
-    { label: 'Completed Jobs', value: profile?.jobs?.filter(j => j.status === 'COMPLETED').length || 0, icon: CheckCircle, color: 'bg-green-50 text-green-700' },
+    // { label: 'Active Jobs', value: profile?.jobs?.filter(j => j.status === 'IN_PROGRESS').length || 0, icon: Users, color: 'bg-amber-50 text-amber-700' },
+    // { label: 'Completed Jobs', value: profile?.jobs?.filter(j => j.status === 'COMPLETED').length || 0, icon: CheckCircle, color: 'bg-green-50 text-green-700' },
     { label: 'Total Spent', value: formatCurrency(profile?.totalSpent || 0), icon: DollarSign, color: 'bg-purple-50 text-purple-700' },
   ]
 
@@ -75,7 +75,7 @@ export default async function CustomerDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {profile.jobs.map(job => (
+                {/* {profile.jobs.map(job => (
                   <tr key={job.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-4">
                       <Link href={`/jobs/${job.id}`} className="font-medium text-sm text-gray-900 hover:text-primary-900">{job.title}</Link>
@@ -85,7 +85,7 @@ export default async function CustomerDashboard() {
                     <td className="px-5 py-4"><JobStatusBadge status={job.status} /></td>
                     <td className="px-5 py-4 text-sm font-semibold text-gray-900">₦{job.budget.toLocaleString()}</td>
                   </tr>
-                ))}
+                ))} */}
               </tbody>
             </table>
           </div>

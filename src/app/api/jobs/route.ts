@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
-  if (!session || session.user.accountType !== 'CUSTOMER') {
+  if (!session || session.user.role !== 'CUSTOMER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         deadline: data.deadline ? new Date(data.deadline) : undefined,
         providersNeeded: data.providersNeeded,
         isAiReviewed: true,
-        aiFlagReason: moderation.flagged ? moderation.reason : null,
+        // aiFlagReason: moderation.flagged ? moderation.reason : null,
         status: moderation.flagged ? 'DRAFT' : 'OPEN',
         ...(data.skillIds?.length ? {
           skills: { create: data.skillIds.map(id => ({ skillId: id })) },

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { VerificationStatus } from '@prisma/client'
 import prisma from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams
+
   const query = params.get('q') || ''
   const category = params.get('category') || ''
   const verified = params.get('verified') === 'true'
@@ -12,46 +14,109 @@ export async function GET(req: NextRequest) {
   const page = Number(params.get('page')) || 1
   const pageSize = 18
 
-  const where: any = {
+  const where = {
     user: {
       isSuspended: false,
       isActive: true,
-      ...(query ? {
-        OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { location: { contains: query, mode: 'insensitive' } },
-        ],
-      } : {}),
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' as const } },
+              { location: { contains: query, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
     },
-    ...(verified ? { verificationStatus: 'VERIFIED' } : {}),
+
+    ...(verified
+        ? { verificationStatus: VerificationStatus.VERIFIED }
+        : {}),
     ...(available ? { isAvailable: true } : {}),
-    ...(minRating > 0 ? { averageRating: { gte: minRating } } : {}),
-    ...(query ? {
-      OR: [
-        { university: { contains: query, mode: 'insensitive' } },
-        { department: { contains: query, mode: 'insensitive' } },
-        { skills: { some: { skill: { name: { contains: query, mode: 'insensitive' } } } } },
-        { services: { some: { title: { contains: query, mode: 'insensitive' } } } },
-      ],
-    } : {}),
+    ...(minRating > 0
+      ? { averageRating: { gte: minRating } }
+      : {}),
+
+    ...(query
+      ? {
+          OR: [
+            {
+              university: {
+                contains: query,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              department: {
+                contains: query,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              skills: {
+                some: {
+                  skill: {
+                    name: {
+                      contains: query,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                },
+              },
+            },
+            {
+              services: {
+                some: {
+                  title: {
+                    contains: query,
+                    mode: 'insensitive' as const,
+                  },
+                },
+              },
+            },
+          ],
+        }
+      : {}),
   }
 
   const [total, profiles] = await Promise.all([
     prisma.providerProfile.count({ where }),
+
     prisma.providerProfile.findMany({
       where,
+
       include: {
         user: true,
-        skills: { include: { skill: true }, take: 5 },
-        services: { orderBy: { startPrice: 'asc' }, take: 1 },
+
+        skills: {
+          include: {
+            skill: true,
+          },
+          take: 5,
+        },
+
+        services: {
+          orderBy: {
+            startPrice: 'asc',
+          },
+          take: 1,
+        },
       },
-      orderBy: [{ verificationStatus: 'asc' }, { averageRating: 'desc' }],
+
+      orderBy: [
+        {
+          verificationStatus: 'asc',
+        },
+        {
+          averageRating: 'desc',
+        },
+      ],
+
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
   ])
 
-  const data = profiles.map(p => ({
+  const data = profiles.map((p: any) => ({
     id: p.id,
     userId: p.userId,
     name: p.user.name,
@@ -65,9 +130,15 @@ export async function GET(req: NextRequest) {
     totalReviews: p.totalReviews,
     jobsCompleted: p.jobsCompleted,
     isAvailable: p.isAvailable,
-    skills: p.skills.map(s => s.skill.name),
+    skills: p.skills.map((s: any) => s.skill.name),
     startingPrice: p.services[0]?.startPrice ?? null,
   }))
 
-  return NextResponse.json({ data, total, page, pageSize, hasMore: page * pageSize < total })
+  return NextResponse.json({
+    data,
+    total,
+    page,
+    pageSize,
+    hasMore: page * pageSize < total,
+  })
 }

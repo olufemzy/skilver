@@ -1,5 +1,22 @@
 import { cn } from '@/lib/utils'
-import type { VerificationStatus, JobStatus, ApplicationStatus } from '@/types'
+
+type VerificationStatus = 'VERIFIED' | 'PENDING' | 'REJECTED'
+
+type JobStatus =
+  | 'DRAFT'
+  | 'OPEN'
+  | 'IN_PROGRESS'
+  | 'SUBMITTED'
+  | 'REVISION_REQUESTED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'DISPUTED'
+
+interface BadgeProps {
+  label: string
+  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'verified'
+  size?: 'sm' | 'md'
+}
 
 interface BadgeProps {
   label: string

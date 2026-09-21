@@ -161,39 +161,27 @@ export default function SearchResults() {
 
     // Convert providers.json to ProviderSearchResult
     const formattedProviders: ProviderSearchResult[] =
-      filteredProviders.map(provider => ({
-        id: provider.id,
+    filteredProviders.map(provider => ({
+      id: provider.id,
+      fullName: provider.name,
+      profilePhotoUrl: provider.avatar || null,
 
-        fullName: provider.name,
+      providerType: "STUDENT",
 
-        profilePhotoUrl: provider.avatar || null,
+      verificationStatus: provider.verified
+        ? "VERIFIED"
+        : "PENDING",
 
-        // Temporary value.
-        // We will replace this after checking your Prisma enum.
-        providerType: 'STUDENT',
-
-        verificationStatus: provider.verified
-          ? 'VERIFIED'
-          : 'UNVERIFIED',
-
-        university: provider.university || null,
-
-        department: provider.department || null,
-
-        location: provider.location || null,
-
-        headlineSkills: provider.skills,
-
-        ratingAvg: Number(provider.rating),
-
-        ratingCount: Number(provider.reviews),
-
-        jobsCompletedCount: Number(provider.jobs),
-
-        startingPrice: Number(provider.price),
-
-        isAvailable: provider.available,
-      }))
+      university: provider.university || null,
+      department: provider.department || null,
+      location: provider.location || null,
+      headlineSkills: provider.skills,
+      ratingAvg: Number(provider.rating),
+      ratingCount: Number(provider.reviews),
+      jobsCompletedCount: Number(provider.jobs),
+      startingPrice: Number(provider.price),
+      isAvailable: provider.available,
+    }))
 
     setProviders(formattedProviders)
     setTotal(formattedProviders.length)

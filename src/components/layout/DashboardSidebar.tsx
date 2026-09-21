@@ -29,7 +29,7 @@ const CUSTOMER_LINKS = [
 export default function DashboardSidebar() {
   const { data: session } = useSession()
   const pathname = usePathname()
-  const isProvider = session?.user?.accountType === 'STUDENT'
+  const isProvider = session?.user?.role === 'PROVIDER'
   const links = isProvider ? PROVIDER_LINKS : CUSTOMER_LINKS
 
   return (

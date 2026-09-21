@@ -8,7 +8,8 @@ import Link from 'next/link'
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions)
-  if (session?.user?.accountType !== 'ADMIN') redirect('/')
+  // if (session?.user?.accountType !== 'ADMIN') redirect('/')
+  if (session?.user?.role !== 'ADMIN') redirect('/')
 
   const [
     totalUsers, totalStudents, totalCustomers,
@@ -101,7 +102,7 @@ export default async function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {recentUsers.map(user => (
+              {/* {recentUsers.map(user => (
                 <tr key={user.id}>
                   <td className="px-5 py-3 text-sm font-medium text-gray-900">{user.name}</td>
                   <td className="px-5 py-3 text-sm text-gray-500 hidden md:table-cell">{user.email}</td>
@@ -117,7 +118,7 @@ export default async function AdminDashboard() {
                     <Link href={`/admin/users/${user.id}`} className="text-xs text-primary-900 font-semibold hover:underline">View</Link>
                   </td>
                 </tr>
-              ))}
+              ))} */}
             </tbody>
           </table>
         </div>

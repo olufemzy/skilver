@@ -364,47 +364,24 @@ model Transaction {
 }
 
 model Review {
-  id              String   @id @default(cuid())
-  contractId      String   @unique
-  reviewerId      String
-  revieweeId      String
-  rating          Int
-  comment         String?
-  isFromCustomer  Boolean  @default(true)
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  contractId     String   @unique
+  reviewerId     String
+  revieweeId     String
+  rating         Int
+  comment        String?
+  isFromCustomer Boolean  @default(true)
+  createdAt      DateTime @default(now())
 
   contract Contract @relation(fields: [contractId], references: [id])
 
-  providerProfile ProviderProfile? @relation(
-    "ProviderReviews",
-    fields: [revieweeId],
-    references: [userId],
-    map: "Review_revieweeId_provider_fkey"
-  )
+  providerProfile ProviderProfile? @relation("ProviderReviews", fields: [revieweeId], references: [userId], map: "Review_revieweeId_provider_fkey")
 
-  customerProfile CustomerProfile? @relation(
-    "CustomerReviews",
-    fields: [reviewerId],
-    references: [userId],
-    map: "Review_reviewerId_customer_fkey"
-  )
+  customerProfile CustomerProfile? @relation("CustomerReviews", fields: [reviewerId], references: [userId], map: "Review_reviewerId_customer_fkey")
 
-  providerReviewsByCustomer ProviderProfile? @relation(
-    "CustomerReviewsByProvider",
-    fields: [reviewerId],
-    references: [userId],
-    map: "Review_reviewerId_provider_fkey"
-  )
+  providerReviewsByCustomer ProviderProfile? @relation("CustomerReviewsByProvider", fields: [reviewerId], references: [userId], map: "Review_reviewerId_provider_fkey")
 
-  customerReviewsByProvider CustomerProfile? @relation(
-    "ProviderReviewsByCustomer",
-    fields: [revieweeId],
-    references: [userId],
-    map: "Review_revieweeId_customer_fkey"
-  )
-
-  @@index([contractId])
-  @@index([revieweeId])
+  customerReviewsByProvider CustomerProfile? @relation("ProviderReviewsByCustomer", fields: [revieweeId], references: [userId], map: "Review_revieweeId_customer_fkey")
 }
 
 model PortfolioItem {

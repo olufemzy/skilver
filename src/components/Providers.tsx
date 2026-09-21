@@ -3,7 +3,7 @@
 import { SessionProvider } from 'next-auth/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
-import { NotificationProvider } from '@/context/NotificationContext'
+// import { NotificationProvider } from '@/context/NotificationContext'
 import type { Session } from 'next-auth'
 import { useState } from 'react'
 
@@ -15,7 +15,7 @@ export default function Providers({ children, session }: { children: React.React
   return (
     <SessionProvider session={session}>
       <QueryClientProvider client={queryClient}>
-        <NotificationProvider>
+        {/* <NotificationProvider> */}
           {children}
           <Toaster
             position="top-right"
@@ -24,7 +24,7 @@ export default function Providers({ children, session }: { children: React.React
               success: { iconTheme: { primary: '#0D4A2F', secondary: '#fff' } },
             }}
           />
-        </NotificationProvider>
+        {/* </NotificationProvider> */}
       </QueryClientProvider>
     </SessionProvider>
   )

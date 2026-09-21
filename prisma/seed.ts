@@ -16,12 +16,14 @@ const CATEGORY_GROUPS: Record<string, string[]> = {
     "Virtual Assistance",
     "Digital Marketing",
   ],
+
   Education: [
     "Tutoring",
     "Assignment & Research Assistance",
     "Exam Preparation",
     "Language Lessons",
   ],
+
   Professional: [
     "Writing",
     "Copywriting",
@@ -30,6 +32,7 @@ const CATEGORY_GROUPS: Record<string, string[]> = {
     "Social Media Management",
     "Accounting & Bookkeeping",
   ],
+
   "Skilled Trades": [
     "Electrical Work",
     "Plumbing",
@@ -46,6 +49,7 @@ const CATEGORY_GROUPS: Record<string, string[]> = {
     "Barbing",
     "Makeup Artistry",
   ],
+
   "Events & Lifestyle": [
     "Catering",
     "Event Decoration",
@@ -57,51 +61,47 @@ const CATEGORY_GROUPS: Record<string, string[]> = {
 };
 
 function slugify(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 async function main() {
+  // Seed categories and skills
   for (const [group, skills] of Object.entries(CATEGORY_GROUPS)) {
     const category = await prisma.category.upsert({
-      where: { slug: slugify(group) },
+      where: {
+        slug: slugify(group),
+      },
       update: {},
-      create: { name: group, slug: slugify(group), group },
+      create: {
+        name: group,
+        slug: slugify(group),
+      },
     });
 
     for (const skillName of skills) {
       await prisma.skill.upsert({
-        where: { name: skillName },
+        where: {
+          name: skillName,
+        },
         update: {},
-        create: { name: skillName, categoryId: category.id },
+        create: {
+          name: skillName,
+          slug: slugify(skillName),
+          categoryId: category.id,
+        },
       });
     }
   }
 
-  const universities = [
-    "University of Lagos",
-    "University of Ibadan",
-    "Obafemi Awolowo University",
-    "Covenant University",
-    "University of Nigeria, Nsukka",
-    "Ahmadu Bello University",
-    "Lagos State University",
-    "Federal University of Technology, Akure",
-  ];
-
-  for (const name of universities) {
-    await prisma.university.upsert({
-      where: { name },
-      update: {},
-      create: { name },
-    });
-  }
-
-  console.log("Seed complete: categories, skills, universities.");
+  console.log("Seed complete: categories and skills.");
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch((error) => {
+    console.error("Seed failed:", error);
     process.exit(1);
   })
   .finally(async () => {
