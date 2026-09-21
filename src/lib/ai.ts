@@ -1,7 +1,11 @@
 import OpenAI from 'openai'
 import prisma from './prisma'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+function getOpenAI() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+}
 
 export async function matchProvidersToJob(jobId: string, limit = 10) {
   const job = await prisma.job.findUnique({
@@ -45,7 +49,7 @@ export async function matchProvidersToJob(jobId: string, limit = 10) {
     location: p.user.location,
   }))
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAI().chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       {
@@ -119,7 +123,7 @@ export async function recommendJobsToProvider(providerId: string, limit = 10) {
 }
 
 export async function generateProfileSuggestions(bio: string, skills: string[]): Promise<string> {
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAI().chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       {
@@ -137,7 +141,7 @@ export async function generateProfileSuggestions(bio: string, skills: string[]):
 }
 
 export async function moderateJobPost(title: string, description: string): Promise<{ flagged: boolean; reason?: string }> {
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAI().chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
       {
