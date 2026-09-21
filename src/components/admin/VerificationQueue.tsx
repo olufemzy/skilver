@@ -6,7 +6,7 @@ import { CheckCircle, XCircle, ExternalLink } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { formatDate } from '@/lib/utils'
 
-interface VerificationItem {
+export interface VerificationItem {
   id: string
   userId: string
   university: string | null
