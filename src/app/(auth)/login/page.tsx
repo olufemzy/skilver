@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { signIn } from 'next-auth/react'
+import { getSession, signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -16,29 +16,66 @@ const schema = z.object({
   email: z.string().email('Enter a valid email'),
   password: z.string().min(1, 'Password is required'),
 })
+
 type FormData = z.infer<typeof schema>
 
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
-    const res = await signIn('credentials', { ...data, redirect: false })
-    setLoading(false)
+
+    const res = await signIn('credentials', {
+      ...data,
+      redirect: false,
+    })
 
     if (res?.error) {
+      setLoading(false)
       toast.error('Invalid email or password')
       return
     }
 
-    toast.success('Welcome back!')
-    router.push('/dashboard')
-    router.refresh()
+    const session = await getSession()
+
+    if (!session?.user?.role) {
+      setLoading(false)
+      toast.error('Unable to determine your account type')
+      return
+    }
+
+    toast.success(`Welcome back! ${session.user.role}`)
+
+    setTimeout(() => {
+      switch (session.user.role) {
+        case 'ADMIN':
+          router.push('/admin')
+          break
+
+        case 'CUSTOMER':
+          router.push('/customer')
+          break
+
+        case 'PROVIDER':
+          router.push('/provider')
+          break
+
+        default:
+          router.push('/')
+          break
+      }
+
+      router.refresh()
+    }, 1000)
   }
 
   return (
@@ -47,12 +84,21 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <div className="w-8 h-8 bg-primary-900 rounded-lg flex items-center justify-center">
-              <span className="text-white font-display text-sm font-bold">SV</span>
+              <span className="text-white font-display text-sm font-bold">
+                SV
+              </span>
             </div>
-            <span className="font-display text-xl text-primary-900">SkilVer</span>
+            <span className="font-display text-xl text-primary-900">
+              SkilVer
+            </span>
           </Link>
-          <h1 className="font-display text-2xl text-gray-900 mb-2">Welcome back</h1>
-          <p className="text-gray-500 text-sm">Sign in to your account</p>
+
+          <h1 className="font-display text-2xl text-gray-900 mb-2">
+            Welcome back
+          </h1>
+          <p className="text-gray-500 text-sm">
+            Sign in to your account
+          </p>
         </div>
 
         <div className="card-base p-8">
@@ -65,6 +111,7 @@ export default function LoginPage() {
               error={errors.email?.message}
               {...register('email')}
             />
+
             <Input
               label="Password"
               type="password"
@@ -73,10 +120,21 @@ export default function LoginPage() {
               error={errors.password?.message}
               {...register('password')}
             />
+
             <div className="flex justify-end">
-              <Link href="/forgot-password" className="text-sm text-primary-900 hover:underline">Forgot password?</Link>
+              <Link
+                href="/forgot-password"
+                className="text-sm text-primary-900 hover:underline"
+              >
+                Forgot password?
+              </Link>
             </div>
-            <Button type="submit" loading={loading} className="w-full">
+
+            <Button
+              type="submit"
+              loading={loading}
+              className="w-full"
+            >
               Sign In
             </Button>
           </form>
@@ -84,7 +142,12 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Don't have an account?{' '}
-          <Link href="/register" className="text-primary-900 font-semibold hover:underline">Sign Up</Link>
+          <Link
+            href="/register"
+            className="text-primary-900 font-semibold hover:underline"
+          >
+            Sign Up
+          </Link>
         </p>
       </div>
     </div>
