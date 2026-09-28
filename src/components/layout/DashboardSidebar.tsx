@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Avatar from '@/components/ui/Avatar'
+import Image from 'next/image'
 
 const PROVIDER_LINKS = [
   { href: '/provider', icon: LayoutDashboard, label: 'Dashboard' },
@@ -89,14 +90,12 @@ export default function DashboardSidebar() {
     <>
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary-900 rounded-lg flex items-center justify-center">
-            <span className="text-white font-display text-xs font-bold">
-              SV
-            </span>
+        <Link href="/" className="flex items-center gap-1">
+          <div className="w-8 h-8  rounded-lg flex items-center justify-center">
+            <Image alt="SkilVer Logo" src="/logo/logo.png" width={130} height={60} />
           </div>
 
-          <span className="font-display text-lg text-primary-900">
+          <span className="font-display text-lg text-primary-900 font-semibold">
             SkilVer
           </span>
         </Link>

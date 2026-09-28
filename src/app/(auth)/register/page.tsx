@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Users, Briefcase } from 'lucide-react'
+import Image from 'next/image'
 
 const ACCOUNT_TYPES = [
   {
@@ -25,11 +26,14 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-surface flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-10">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 bg-primary-900 rounded-lg flex items-center justify-center">
-              <span className="text-white font-display text-sm font-bold">SV</span>
+          <Link href="/" className="flex justify-center items-center gap-1 mb-2">
+            <div className="w-10 h-10  rounded-lg flex items-center justify-center">
+              <Image alt="SkilVer Logo" src="/logo/logo.png" width={130} height={60} />
             </div>
-            <span className="font-display text-xl text-primary-900">SkilVer</span>
+
+            <span className="font-display text-lg text-primary-900 font-semibold">
+              SkilVer
+            </span>
           </Link>
           <h1 className="font-display text-3xl text-gray-900 mb-2">Create your account</h1>
           <p className="text-gray-500">How will you be using SkilVer?</p>

@@ -32,11 +32,11 @@ export default function Navbar() {
       <div className="container-app">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-900 rounded-lg flex items-center justify-center">
-              <span className="text-white font-display text-sm font-bold">SV</span>
+          <Link href="/" className="flex items-center gap-1">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center">
+              <Image alt="SkilVer Logo" src="/logo/logo.png" width={130} height={60} />
             </div>
-            <span className="font-display text-xl text-primary-900 hidden sm:block">SkilVer</span>
+            <span className="font-display text-xl text-primary-900 font-semibold hidden sm:block">SkilVer</span>
           </Link>
 
           {/* Desktop nav */}

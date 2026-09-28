@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 
 const LINKS = {
@@ -27,11 +28,11 @@ export default function Footer() {
       <div className="container-app py-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
           <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-primary-900 rounded-lg flex items-center justify-center">
-                <span className="text-white font-display text-sm font-bold">SV</span>
+            <div className="flex items-center gap-1 mb-4">
+              <div className="w-9 h-9  rounded-lg flex items-center justify-center">
+                <Image alt="SkilVer Logo" src="/logo/logo.png" width={130} height={60} />
               </div>
-              <span className="font-display text-xl text-white">SkilVer</span>
+              <span className="font-display text-xl text-white font-semibold">SkilVer</span>
             </div>
             <p className="text-sm leading-relaxed">
               The verified skills marketplace connecting talented students and professionals with people who need work done.
