@@ -2,31 +2,9 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
-type UserRole = "ADMIN" | "CUSTOMER" | "PROVIDER";
+import prisma from "@/lib/prisma";
 
-const testUsers = [ 
-  { 
-    id: "dev-admin-001", 
-    email: "admin@test.com", 
-    password: "12345678", 
-    name: "Test Admin", 
-    role: "ADMIN" as UserRole, 
-  }, 
-  { 
-    id: "dev-customer-001", 
-    email: "customer@test.com", 
-    password: "12345678", 
-    name: "Test Customer", 
-    role: "CUSTOMER" as UserRole, 
-  }, 
-  { 
-    id: "dev-provider-001", 
-    email: "provider@test.com", 
-    password: "12345678", 
-    name: "Test Provider", 
-    role: "PROVIDER" as UserRole, 
-  }, 
-];
+type UserRole = "ADMIN" | "CUSTOMER" | "PROVIDER";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -37,44 +15,70 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
 
-  providers: [ 
-    CredentialsProvider({ 
-      name: "Email & Password", 
-      credentials: 
-        { 
-          email: { 
-            label: "Email", 
-            type: "email", 
-          }, 
-          password: { 
-            label: "Password", 
-            type: "password", 
-          }, 
-        }, 
-        async authorize(credentials) { 
-          if (!credentials?.email || !credentials?.password) {
-            return null; 
-          } 
-          const email = credentials.email.toLowerCase().trim(); 
-          /* * Find the matching development user. */ 
-          const testUser = testUsers.find( (user) => user.email === email ); 
-          if (!testUser) { 
-            return null; 
-          } 
-        /* * Check the password. 
-        * * These are temporary development accounts, 
-        * so plaintext comparison is being used here. * * Real users will use bcrypt/database * authentication when Prisma is restored. */ 
-        if (credentials.password !== testUser.password) {
-          return null; 
-        } 
-        return { 
-          id: testUser.id, 
-          email: testUser.email, 
-          name: testUser.name, 
-          role: testUser.role, 
-        }; 
-      }, 
-    }), 
+  providers: [
+    CredentialsProvider({
+      name: "Email & Password",
+
+      credentials: {
+        email: {
+          label: "Email",
+          type: "email",
+        },
+        password: {
+          label: "Password",
+          type: "password",
+        },
+      },
+
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        const email = credentials.email.toLowerCase().trim();
+
+        // Find user in the real database
+        const user = await prisma.user.findUnique({
+          where: {
+            email,
+          },
+        });
+
+        // User does not exist
+        if (!user) {
+          return null;
+        }
+
+        // Prevent inactive or suspended accounts from logging in
+        if (!user.isActive || user.isSuspended) {
+          return null;
+        }
+
+        // Compare entered password with hashed password
+        const passwordIsValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!passwordIsValid) {
+          return null;
+        }
+
+        // Your database uses STUDENT for service providers.
+        // The existing application uses PROVIDER for the dashboard role.
+        const role: UserRole =
+          user.accountType === "STUDENT"
+            ? "PROVIDER"
+            : user.accountType;
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role,
+        };
+      },
+    }),
   ],
 
   callbacks: {
@@ -96,14 +100,14 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+
   secret: process.env.NEXTAUTH_SECRET,
 };
 
 /**
  * Hash a plaintext password.
  *
- * Kept here because registration will eventually
- * use this when Prisma/database is restored.
+ * Used when creating new users during registration.
  */
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 12);
