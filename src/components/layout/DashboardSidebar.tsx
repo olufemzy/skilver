@@ -24,6 +24,7 @@ import {
   Tags,
   Menu,
   X,
+  GraduationCap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Avatar from '@/components/ui/Avatar'
@@ -33,6 +34,7 @@ const PROVIDER_LINKS = [
   { href: '/provider', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/provider/profile', icon: User, label: 'My Profile' },
   { href: '/provider/portfolio', icon: FolderOpen, label: 'Portfolio' },
+  { href: '/provider/services', icon: Tags, label: 'My Services' },
   { href: '/provider/jobs', icon: Briefcase, label: 'Browse Jobs' },
   { href: '/provider/applications', icon: FileText, label: 'Applications' },
   { href: '/provider/messages', icon: MessageSquare, label: 'Messages' },
@@ -44,6 +46,7 @@ const CUSTOMER_LINKS = [
   { href: '/customer/post-job', icon: PlusCircle, label: 'Post a Job' },
   { href: '/customer/jobs', icon: Briefcase, label: 'My Jobs' },
   { href: '/customer/saved', icon: Bookmark, label: 'Saved Providers' },
+  { href: "/customer/requests", icon: FileText, label: "My Requests"},
   { href: '/customer/messages', icon: MessageSquare, label: 'Messages' },
   { href: '/customer/payments', icon: DollarSign, label: 'Payments' },
 ]
@@ -55,6 +58,7 @@ const ADMIN_LINKS = [
   { href: '/admin/jobs', icon: Briefcase, label: 'Jobs' },
   { href: '/admin/transactions', icon: CreditCard, label: 'Transactions' },
   { href: '/admin/categories', icon: Tags, label: 'Categories' },
+  { href: '/admin/skills', icon: GraduationCap, label: 'Skills' },
   { href: '/admin/disputes', icon: AlertTriangle, label: 'Disputes' },
   { href: '/admin/portfolio', icon: FolderOpen, label: 'Portfolio' },
   { href: '/admin/profile', icon: User, label: 'My Profile' },

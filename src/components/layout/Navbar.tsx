@@ -41,8 +41,8 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
-            <Link href="/browse" className="hover:text-primary-900 transition-colors">Browse Services</Link>
-            {/* <Link href="/jobs" className="hover:text-primary-900 transition-colors">Jobs</Link> */}
+            <Link href="/browse" className="hover:text-primary-900 transition-colors">Browse Providers</Link>
+            <Link href="/services" className="hover:text-primary-900 transition-colors">Services</Link>
             <Link href="/browse?verified=true" className="hover:text-primary-900 transition-colors">Verified Talent</Link>
           </nav>
 
