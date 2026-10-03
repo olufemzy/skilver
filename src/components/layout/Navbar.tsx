@@ -93,8 +93,8 @@ export default function Navbar() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-3">
-          <Link href="/browse" className="block text-gray-700 font-medium py-2" onClick={() => setMobileOpen(false)}>Browse Services</Link>
-          {/* <Link href="/jobs" className="block text-gray-700 font-medium py-2" onClick={() => setMobileOpen(false)}>Browse Jobs</Link> */}
+          <Link href="/browse" className="block text-gray-700 font-medium py-2" onClick={() => setMobileOpen(false)}>Browse Providers</Link>
+          <Link href="/jobs" className="block text-gray-700 font-medium py-2" onClick={() => setMobileOpen(false)}>Services</Link>
           {!session && (
             <>
               <Link href="/login" className="block text-gray-700 font-medium py-2" onClick={() => setMobileOpen(false)}>Log In</Link>
