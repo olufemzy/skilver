@@ -12,11 +12,6 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
-  // const dashboardHref = session?.user?.accountType === 'ADMIN'
-  //   ? '/admin'
-  //   : session?.user?.accountType === 'CUSTOMER'
-  //   ? '/customer'
-  //   : '/provider'
 
   const dashboardHref =
   session?.user?.role === "ADMIN"
@@ -94,7 +89,7 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-3">
           <Link href="/browse" className="block text-gray-700 font-medium py-2" onClick={() => setMobileOpen(false)}>Browse Providers</Link>
-          <Link href="/jobs" className="block text-gray-700 font-medium py-2" onClick={() => setMobileOpen(false)}>Services</Link>
+          <Link href="/services" className="block text-gray-700 font-medium py-2" onClick={() => setMobileOpen(false)}>Services</Link>
           {!session && (
             <>
               <Link href="/login" className="block text-gray-700 font-medium py-2" onClick={() => setMobileOpen(false)}>Log In</Link>

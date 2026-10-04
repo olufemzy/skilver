@@ -43,7 +43,7 @@ const PROVIDER_LINKS = [
 
 const CUSTOMER_LINKS = [
   { href: '/customer', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/customer/post-job', icon: PlusCircle, label: 'Post a Job' },
+  { href: '/customer/post-jobs', icon: PlusCircle, label: 'Post a Job' },
   { href: '/customer/jobs', icon: Briefcase, label: 'My Jobs' },
   { href: '/customer/saved', icon: Bookmark, label: 'Saved Providers' },
   { href: "/customer/requests", icon: FileText, label: "My Requests"},

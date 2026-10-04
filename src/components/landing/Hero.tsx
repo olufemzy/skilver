@@ -6,13 +6,31 @@ import { useState } from "react";
 import { Search, ArrowRight, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const POPULAR_SEARCHES = [
-  "Graphic Designer",
-  "Web Developer",
-  "Tutor",
-  "Photographer",
-  "Electrician",
-  "Tailor",
+const EXPLORE_CATEGORIES = [
+  {
+    name: "Digital & Tech",
+    slug: "digital-tech",
+  },
+  {
+    name: "Education",
+    slug: "education",
+  },
+  {
+    name: "Professional",
+    slug: "professional",
+  },
+  {
+    name: "Skilled Trades",
+    slug: "skilled-trades",
+  },
+  {
+    name: "Events & Media",
+    slug: "events-media",
+  },
+  {
+    name: "Fashion & Beauty",
+    slug: "fashion-beauty",
+  },
 ];
 
 export default function Hero() {
@@ -27,6 +45,10 @@ export default function Hero() {
         `/browse?q=${encodeURIComponent(query.trim())}`
       );
     }
+  };
+
+  const handleCategoryClick = (slug: string) => {
+    router.push(`/browse?category=${slug}`);
   };
 
   return (
@@ -102,23 +124,22 @@ export default function Hero() {
               </button>
             </form>
 
-            {/* Popular searches */}
+            {/* Explore categories */}
             <div className="flex flex-wrap gap-2">
               <span className="text-white/50 text-sm">
                 Explore:
               </span>
 
-              {POPULAR_SEARCHES.map((search) => (
+              {EXPLORE_CATEGORIES.map((category) => (
                 <button
-                  key={search}
+                  key={category.slug}
+                  type="button"
                   onClick={() =>
-                    router.push(
-                      `/browse?q=${encodeURIComponent(search)}`
-                    )
+                    handleCategoryClick(category.slug)
                   }
                   className="text-sm text-white/70 hover:text-white border border-white/20 hover:border-white/40 px-3 py-1 rounded-full transition-colors"
                 >
-                  {search}
+                  {category.name}
                 </button>
               ))}
             </div>
@@ -127,7 +148,7 @@ export default function Hero() {
             <div className="flex gap-4 mt-8">
               <Link
                 href="/browse"
-                className="btn-accent flex items-center gap-2"
+                className="btn-accent max-sm:text-sm flex items-center gap-2"
               >
                 Find a Service
                 <ArrowRight size={16} />
@@ -135,7 +156,7 @@ export default function Hero() {
 
               <Link
                 href="/register/student"
-                className="flex items-center gap-2 text-white font-semibold border-2 border-white/30 hover:border-white/60 px-6 py-3 rounded-xl transition-all"
+                className="max-sm:text-sm flex items-center  gap-2 text-white font-semibold border-2 border-white/30 hover:border-white/60 px-6 py-3 rounded-xl transition-all"
               >
                 Become a Provider
               </Link>

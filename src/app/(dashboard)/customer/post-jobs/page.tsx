@@ -36,9 +36,7 @@ export default function PostJobPage() {
   const budget = watch('budget')
   const fee = Math.round((budget || 0) * 0.1)
 
-  useEffect(() => {
-    fetch('/api/categories').then(r => r.json()).then(setCategories)
-  }, [])
+  useEffect(() => { fetch('/api/categories') .then(r => r.json()) .then(data => setCategories(data.categories || [])) .catch(() => toast.error('Failed to load categories')) }, [])
 
   const improveWithAI = async () => {
     const title = watch('title')

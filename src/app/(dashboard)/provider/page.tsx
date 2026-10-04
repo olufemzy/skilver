@@ -1,63 +1,175 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { formatCurrency } from '@/lib/utils'
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { formatCurrency } from "@/lib/utils";
 import {
   Briefcase,
   DollarSign,
   Star,
   Clock,
   AlertCircle,
-} from 'lucide-react'
-import Link from 'next/link'
-import { VerificationBadge } from '@/components/ui/Badge'
+} from "lucide-react";
+import Link from "next/link";
+import { VerificationBadge } from "@/components/ui/Badge";
 
 export default async function ProviderDashboard() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions);
 
-  if (!session?.user) {
-    return null
+  if (!session?.user?.id) {
+    return null;
   }
 
-  // Temporary demo data until PostgreSQL is connected
-  const verificationStatus: 'VERIFIED' | 'PENDING' | 'REJECTED' = 'PENDING'
-  const totalEarnings = 0
-  const jobsCompleted = 0
-  const averageRating = 0
-  const activeContracts: any[] = []
-  const recentJobs: any[] = []
+  /*
+   * Get the logged-in user's provider profile.
+   */
+  const provider = await prisma.providerProfile.findUnique({
+    where: {
+      userId: session.user.id,
+    },
+
+    select: {
+      id: true,
+      verificationStatus: true,
+      totalEarnings: true,
+      jobsCompleted: true,
+      averageRating: true,
+
+      contracts: {
+        where: {
+          status: {
+            in: [
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "REVISION_REQUESTED",
+            ],
+          },
+        },
+
+        orderBy: {
+          createdAt: "desc",
+        },
+
+        take: 5,
+
+        select: {
+          id: true,
+          agreedPrice: true,
+          status: true,
+
+          job: {
+            select: {
+              id: true,
+              title: true,
+
+              customer: {
+                select: {
+                  user: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  /*
+   * If the logged-in user does not have a provider profile,
+   * there is nothing to display on the provider dashboard.
+   */
+  if (!provider) {
+    return (
+      <div className="card-base p-8 text-center">
+        <h2 className="font-semibold text-gray-900 mb-2">
+          Provider profile not found
+        </h2>
+
+        <p className="text-sm text-gray-500">
+          Your provider profile has not been created yet.
+        </p>
+      </div>
+    );
+  }
+
+  /*
+   * Get recent open jobs.
+   *
+   * These are currently shown as recommended jobs.
+   * Later we can make this smarter by matching jobs
+   * against the provider's skills and categories.
+   */
+  const recentJobs = await prisma.job.findMany({
+    where: {
+      status: "OPEN",
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+
+    take: 5,
+
+    select: {
+      id: true,
+      title: true,
+      budget: true,
+
+      category: {
+        select: {
+          name: true,
+        },
+      },
+
+      _count: {
+        select: {
+          applications: true,
+        },
+      },
+    },
+  });
+
+  const verificationStatus = provider.verificationStatus;
+  const totalEarnings = provider.totalEarnings || 0;
+  const jobsCompleted = provider.jobsCompleted || 0;
+  const averageRating = provider.averageRating || 0;
+  const activeContracts = provider.contracts;
 
   const stats = [
     {
-      label: 'Total Earned',
+      label: "Total Earned",
       value: formatCurrency(totalEarnings),
       icon: DollarSign,
-      color: 'bg-green-50 text-green-700',
+      color: "bg-green-50 text-green-700",
     },
     {
-      label: 'Jobs Completed',
+      label: "Jobs Completed",
       value: jobsCompleted,
       icon: Briefcase,
-      color: 'bg-blue-50 text-blue-700',
+      color: "bg-blue-50 text-blue-700",
     },
     {
-      label: 'Average Rating',
+      label: "Average Rating",
       value: `${averageRating.toFixed(1)}/5`,
       icon: Star,
-      color: 'bg-amber-50 text-amber-700',
+      color: "bg-amber-50 text-amber-700",
     },
     {
-      label: 'Active Jobs',
+      label: "Active Jobs",
       value: activeContracts.length,
       icon: Clock,
-      color: 'bg-purple-50 text-purple-700',
+      color: "bg-purple-50 text-purple-700",
     },
-  ]
+  ];
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-2xl text-gray-900 mb-1">
-          Dashboard 
+          Dashboard
         </h1>
 
         <p className="text-gray-500 text-sm">
@@ -66,7 +178,7 @@ export default async function ProviderDashboard() {
       </div>
 
       {/* Verification alert */}
-      {verificationStatus === 'PENDING' && (
+      {verificationStatus === "PENDING" && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-start gap-4">
           <AlertCircle
             size={20}
@@ -88,6 +200,36 @@ export default async function ProviderDashboard() {
               className="text-sm font-semibold text-amber-800 underline mt-2 inline-block"
             >
               Submit verification →
+            </Link>
+          </div>
+
+          <VerificationBadge status={verificationStatus} />
+        </div>
+      )}
+
+      {/* Verification rejected */}
+      {verificationStatus === "REJECTED" && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start gap-4">
+          <AlertCircle
+            size={20}
+            className="text-red-600 flex-shrink-0 mt-0.5"
+          />
+
+          <div>
+            <p className="font-semibold text-red-800 text-sm">
+              Verification was rejected
+            </p>
+
+            <p className="text-red-700 text-sm mt-0.5">
+              Please review your verification information and submit
+              your documents again.
+            </p>
+
+            <Link
+              href="/provider/profile#verification"
+              className="text-sm font-semibold text-red-800 underline mt-2 inline-block"
+            >
+              Review verification →
             </Link>
           </div>
 
@@ -137,7 +279,17 @@ export default async function ProviderDashboard() {
                     </p>
 
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {contract.customer.user.name}
+                      {contract.job.customer.user.name}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-primary-900">
+                      {formatCurrency(contract.agreedPrice)}
+                    </p>
+
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {contract.status.replaceAll("_", " ")}
                     </p>
                   </div>
                 </Link>
@@ -185,7 +337,8 @@ export default async function ProviderDashboard() {
                       </p>
 
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {job.category} • {job.applications} applicants
+                        {job.category.name} •{" "}
+                        {job._count.applications} applicants
                       </p>
                     </div>
 
@@ -218,5 +371,5 @@ export default async function ProviderDashboard() {
         </div>
       </div>
     </div>
-  )
+  );
 }
