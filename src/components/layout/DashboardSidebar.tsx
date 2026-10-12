@@ -25,6 +25,7 @@ import {
   Menu,
   X,
   GraduationCap,
+  BriefcaseBusiness,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Avatar from '@/components/ui/Avatar'
@@ -43,9 +44,10 @@ const PROVIDER_LINKS = [
 
 const CUSTOMER_LINKS = [
   { href: '/customer', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/customer/post-jobs', icon: PlusCircle, label: 'Post a Job' },
+  { href: '/customer/post-job', icon: PlusCircle, label: 'Post a Job' },
   { href: '/customer/jobs', icon: Briefcase, label: 'My Jobs' },
   { href: '/customer/saved', icon: Bookmark, label: 'Saved Providers' },
+  { href: '/customer/active-projects', icon: BriefcaseBusiness, label: 'Active Projects' },
   { href: "/customer/requests", icon: FileText, label: "My Requests"},
   { href: '/customer/messages', icon: MessageSquare, label: 'Messages' },
   { href: '/customer/payments', icon: DollarSign, label: 'Payments' },

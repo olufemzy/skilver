@@ -1,169 +1,467 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { formatCurrency } from '@/lib/utils'
-import { Briefcase, DollarSign } from 'lucide-react'
-import Link from 'next/link'
-import Button from '@/components/ui/Button'
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import {
+  Briefcase,
+  DollarSign,
+  FileText,
+  Clock,
+  ArrowRight,
+  Plus,
+  CheckCircle,
+} from "lucide-react";
+
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { formatCurrency } from "@/lib/utils";
+import Button from "@/components/ui/Button";
+
+export const dynamic = "force-dynamic";
 
 export default async function CustomerDashboard() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions);
 
-  if (!session?.user) {
-    return null
+  if (!session?.user?.id) {
+    redirect("/login");
   }
 
-  // Temporary demo data until PostgreSQL is connected
-  const jobsPosted = 0
-  const totalSpent = 0
-  const recentJobs: any[] = []
+  // Find the customer profile belonging to the logged-in user.
+  const customer = await prisma.customerProfile.findUnique({
+    where: {
+      userId: session.user.id,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!customer) {
+    return (
+      <div className="card-base p-8 text-center">
+        <h1 className="text-xl font-semibold text-gray-900">
+          Customer profile not found
+        </h1>
+        <p className="mt-2 text-sm text-gray-500">
+          Your customer profile could not be found. Please contact
+          support if this problem continues.
+        </p>
+      </div>
+    );
+  }
+
+  // Load dashboard information from the database.
+  const [
+    jobsPosted,
+    openJobs,
+    applicationsReceived,
+    activeProjects,
+    completedContracts,
+    recentJobs,
+  ] = await Promise.all([
+    prisma.job.count({
+      where: {
+        customerId: customer.id,
+      },
+    }),
+
+    prisma.job.count({
+      where: {
+        customerId: customer.id,
+        status: "OPEN",
+      },
+    }),
+
+    prisma.application.count({
+      where: {
+        job: {
+          is: {
+            customerId: customer.id,
+          },
+        },
+      },
+    }),
+
+    prisma.contract.count({
+      where: {
+        customerId: customer.id,
+        status: "IN_PROGRESS",
+      },
+    }),
+
+    prisma.contract.aggregate({
+      where: {
+        customerId: customer.id,
+        status: "COMPLETED",
+      },
+      _sum: {
+        agreedPrice: true,
+      },
+    }),
+
+    prisma.job.findMany({
+      where: {
+        customerId: customer.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        budget: true,
+        currency: true,
+        status: true,
+        createdAt: true,
+        category: {
+          select: {
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            applications: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const totalSpent = Number(
+    completedContracts._sum.agreedPrice ?? 0
+  );
 
   const stats = [
     {
-      label: 'Jobs Posted',
-      value: jobsPosted,
+      label: "Jobs Posted",
+      value: jobsPosted.toLocaleString(),
       icon: Briefcase,
-      color: 'bg-blue-50 text-blue-700',
+      color: "bg-blue-50 text-blue-700",
+      description: "Total jobs you have created",
     },
     {
-      label: 'Total Spent',
-      value: formatCurrency(totalSpent),
-      icon: DollarSign,
-      color: 'bg-purple-50 text-purple-700',
+      label: "Open Jobs",
+      value: openJobs.toLocaleString(),
+      icon: Clock,
+      color: "bg-amber-50 text-amber-700",
+      description: "Jobs accepting applications",
     },
-  ]
+    {
+      label: "Applications Received",
+      value: applicationsReceived.toLocaleString(),
+      icon: FileText,
+      color: "bg-purple-50 text-purple-700",
+      description: "Proposals received across your jobs",
+    },
+    {
+      label: "Active Projects",
+      value: activeProjects.toLocaleString(),
+      icon: CheckCircle,
+      color: "bg-green-50 text-green-700",
+      description: "Projects currently in progress",
+    },
+  ];
+
+  const getStatusStyles = (status: string) => {
+    switch (status) {
+      case "OPEN":
+        return "bg-green-50 text-green-700";
+
+      case "IN_PROGRESS":
+        return "bg-blue-50 text-blue-700";
+
+      case "COMPLETED":
+        return "bg-emerald-50 text-emerald-700";
+
+      case "SUBMITTED":
+        return "bg-purple-50 text-purple-700";
+
+      case "REVISION_REQUESTED":
+        return "bg-amber-50 text-amber-700";
+
+      case "CANCELLED":
+      case "DISPUTED":
+        return "bg-red-50 text-red-700";
+
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
+  };
+
+  const formatDate = (date: Date) =>
+    new Intl.DateTimeFormat("en-NG", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(date);
 
   return (
     <div className="space-y-8">
-      <div className="flex items-end justify-between">
+      {/* Welcome Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl text-gray-900 mb-1">
-            Welcome back, {session.user.name?.split(' ')[0]}
+          <p className="text-sm font-medium text-[#0E4A30] mb-2">
+            CUSTOMER DASHBOARD
+          </p>
+
+          <h1 className="font-display text-2xl sm:text-3xl text-gray-900 mb-2">
+            Welcome back,{" "}
+            {session.user.name?.split(" ")[0] || "Customer"}
           </h1>
 
           <p className="text-gray-500 text-sm">
-            Manage your jobs and hired talent.
+            Manage your jobs, review proposals, and keep track of
+            your projects.
           </p>
         </div>
 
         <Link href="/customer/post-job">
-          <Button>Post a Job</Button>
+          <Button>
+            <span className="inline-flex items-center gap-2">
+              <Plus size={17} />
+              Post a Job
+            </span>
+          </Button>
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="card-base p-5">
+      {/* Dashboard Statistics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+
+          return (
             <div
-              className={`w-9 h-9 ${stat.color} rounded-xl flex items-center justify-center mb-3`}
+              key={stat.label}
+              className="card-base p-5"
             >
-              <stat.icon size={18} />
+              <div
+                className={`w-10 h-10 ${stat.color} rounded-xl flex items-center justify-center mb-4`}
+              >
+                <Icon size={19} />
+              </div>
+
+              <p className="text-2xl font-display font-semibold text-gray-900">
+                {stat.value}
+              </p>
+
+              <p className="text-sm font-medium text-gray-800 mt-1">
+                {stat.label}
+              </p>
+
+              <p className="text-xs text-gray-500 mt-1">
+                {stat.description}
+              </p>
             </div>
-
-            <p className="text-2xl font-display text-gray-900">
-              {stat.value}
-            </p>
-
-            <p className="text-xs text-gray-500 mt-0.5">
-              {stat.label}
-            </p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-gray-900">
-            Recent Jobs
-          </h2>
+      {/* Total Spending */}
+      <div className="card-base p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-[#0E4A30]/10 text-[#0E4A30] flex items-center justify-center">
+            <DollarSign size={23} />
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-500">
+              Total Spent on Completed Contracts
+            </p>
+
+            <p className="text-2xl font-display font-semibold text-gray-900 mt-1">
+              {formatCurrency(totalSpent)}
+            </p>
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-500 max-w-xs">
+          Calculated from contracts marked as completed. This is
+          not a live payment balance.
+        </p>
+      </div>
+
+      {/* Recent Jobs */}
+      <section>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-semibold text-lg text-gray-900">
+              Recent Jobs
+            </h2>
+
+            <p className="text-sm text-gray-500 mt-1">
+              Your five most recently posted jobs.
+            </p>
+          </div>
 
           <Link
             href="/customer/jobs"
-            className="text-sm text-primary-900 font-semibold hover:underline"
+            className="inline-flex items-center gap-2 text-sm text-[#0E4A30] font-semibold hover:underline"
           >
-            View all
+            View all jobs
+            <ArrowRight size={16} />
           </Link>
         </div>
 
         {recentJobs.length > 0 ? (
           <div className="card-base overflow-hidden">
-            <table className="w-full">
-              <thead className="border-b border-gray-100">
-                <tr>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">
-                    Job Title
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 hidden md:table-cell">
-                    Category
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 hidden md:table-cell">
-                    Applications
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">
-                    Status
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">
-                    Budget
-                  </th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px]">
+                <thead className="border-b border-gray-100 bg-gray-50">
+                  <tr>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">
+                      Job Title
+                    </th>
 
-              <tbody className="divide-y divide-gray-50">
-                {recentJobs.map((job) => (
-                  <tr
-                    key={job.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-5 py-4">
-                      <Link
-                        href={`/jobs/${job.id}`}
-                        className="font-medium text-sm text-gray-900 hover:text-primary-900"
-                      >
-                        {job.title}
-                      </Link>
-                    </td>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">
+                      Category
+                    </th>
 
-                    <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">
-                      {job.category}
-                    </td>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">
+                      Applications
+                    </th>
 
-                    <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">
-                      {job.applications}
-                    </td>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">
+                      Status
+                    </th>
 
-                    <td className="px-5 py-4 text-sm text-gray-500">
-                      {job.status}
-                    </td>
-
-                    <td className="px-5 py-4 text-sm font-semibold text-gray-900">
-                      ₦{Number(job.budget).toLocaleString()}
-                    </td>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">
+                      Budget
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+
+                <tbody className="divide-y divide-gray-50">
+                  {recentJobs.map((job) => (
+                    <tr
+                      key={job.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-5 py-4">
+                        <Link
+                          href={`/jobs/${job.id}`}
+                          className="font-medium text-sm text-gray-900 hover:text-[#0E4A30]"
+                        >
+                          {job.title}
+                        </Link>
+
+                        <p className="text-xs text-gray-400 mt-1">
+                          Posted {formatDate(job.createdAt)}
+                        </p>
+                      </td>
+
+                      <td className="px-5 py-4 text-sm text-gray-500">
+                        {job.category?.name || "Uncategorized"}
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <Link
+                          href={`/jobs/${job.id}/applications`}
+                          className="inline-flex items-center gap-1 text-sm font-medium text-[#0E4A30] hover:underline"
+                        >
+                          {job._count.applications}
+                          <ArrowRight size={14} />
+                        </Link>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusStyles(
+                            job.status
+                          )}`}
+                        >
+                          {job.status.replace(/_/g, " ")}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4 text-sm font-semibold text-gray-900">
+                        {formatCurrency(Number(job.budget))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
-          <div className="card-base p-12 text-center">
-            <Briefcase
-              size={40}
-              className="mx-auto mb-4 text-gray-200"
-            />
+          <div className="card-base p-8 sm:p-12 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#0E4A30]/5 text-[#0E4A30] flex items-center justify-center mb-4">
+              <Briefcase size={27} />
+            </div>
 
-            <p className="font-semibold text-gray-900 mb-2">
+            <h3 className="font-semibold text-gray-900 mb-2">
               No jobs posted yet
-            </p>
+            </h3>
 
-            <p className="text-sm text-gray-500 mb-6">
-              Post your first job and get proposals from verified talent
-              within hours.
+            <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
+              Your posted jobs will appear here. Create your first
+              job to start receiving proposals from skilled providers.
             </p>
 
             <Link href="/customer/post-job">
-              <Button>Post Your First Job</Button>
+              <Button>
+                <span className="inline-flex items-center gap-2">
+                  <Plus size={17} />
+                  Post Your First Job
+                </span>
+              </Button>
             </Link>
           </div>
         )}
-      </div>
+      </section>
+
+      {/* Quick Actions */}
+      <section>
+        <h2 className="font-semibold text-lg text-gray-900 mb-4">
+          Quick Actions
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link
+            href="/customer/post-job"
+            className="card-base p-5 flex items-center justify-between gap-4 hover:border-[#0E4A30]/30 transition"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#0E4A30]/10 text-[#0E4A30] flex items-center justify-center">
+                <Plus size={19} />
+              </div>
+
+              <div>
+                <p className="font-semibold text-sm text-gray-900">
+                  Post a New Job
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Find the right talent for your project.
+                </p>
+              </div>
+            </div>
+
+            <ArrowRight size={18} className="text-gray-400 shrink-0" />
+          </Link>
+
+          <Link
+            href="/customer/jobs"
+            className="card-base p-5 flex items-center justify-between gap-4 hover:border-[#0E4A30]/30 transition"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                <Briefcase size={19} />
+              </div>
+
+              <div>
+                <p className="font-semibold text-sm text-gray-900">
+                  Manage My Jobs
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Check job status and review proposals.
+                </p>
+              </div>
+            </div>
+
+            <ArrowRight size={18} className="text-gray-400 shrink-0" />
+          </Link>
+        </div>
+      </section>
     </div>
-  )
+  );
 }

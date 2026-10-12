@@ -31,6 +31,7 @@ type Job = {
     id: string;
     role: string;
     isOwner: boolean;
+    applicationStatus: string | null;
   };
 };
 
@@ -68,6 +69,7 @@ export default function ApplyForJobPage({
   const [experience, setExperience] = useState("");
   const [portfolioLinks, setPortfolioLinks] =
     useState("");
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     async function loadJob() {
@@ -83,6 +85,36 @@ export default function ApplyForJobPage({
             data.error || "Failed to load job"
           );
         }
+
+        
+        const applicationStatus =
+          data.job.currentUser.applicationStatus;
+
+        if (applicationStatus) {
+          setRedirecting(true);
+
+          if (applicationStatus === "REJECTED") {
+            toast.error(
+              "Your previous application was not successful. You cannot apply for this job again."
+            );
+          } else if (applicationStatus === "PENDING") {
+            toast.error(
+              "You have already applied for this job. Your application is awaiting review."
+            );
+          } else if (applicationStatus === "ACCEPTED") {
+            toast.success(
+              "Your application has already been accepted."
+            );
+          } else if (applicationStatus === "WITHDRAWN") {
+            toast.error(
+              "You previously withdrew your application for this job."
+            );
+          }
+
+          router.replace("/provider/jobs");
+          return;
+        }
+
 
         setJob(data.job);
 
@@ -194,7 +226,7 @@ export default function ApplyForJobPage({
     }
   }
 
-  if (loading) {
+  if (loading || redirecting) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="flex items-center gap-3 text-gray-500">

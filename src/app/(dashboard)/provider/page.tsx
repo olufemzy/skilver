@@ -102,9 +102,18 @@ export default async function ProviderDashboard() {
    * Later we can make this smarter by matching jobs
    * against the provider's skills and categories.
    */
+  
   const recentJobs = await prisma.job.findMany({
     where: {
       status: "OPEN",
+
+      // Exclude jobs this provider has been rejected from.
+      applications: {
+        none: {
+          providerId: provider.id,
+          status: "REJECTED",
+        },
+      },
     },
 
     orderBy: {
@@ -131,6 +140,7 @@ export default async function ProviderDashboard() {
       },
     },
   });
+
 
   const verificationStatus = provider.verificationStatus;
   const totalEarnings = provider.totalEarnings || 0;

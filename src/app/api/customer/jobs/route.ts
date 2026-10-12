@@ -10,33 +10,26 @@ export const dynamic = "force-dynamic";
  * GET /api/customer/jobs
  *
  * Returns jobs belonging only to the currently
- * authenticated customer.
+ * authenticated customer, including contract details.
  */
 export async function GET() {
   try {
-    // 1. Check authentication
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json(
-        {
-          error: "You must be logged in.",
-        },
+        { error: "You must be logged in." },
         { status: 401 }
       );
     }
 
-    // 2. Make sure the user is a customer
     if (session.user.role !== "CUSTOMER") {
       return NextResponse.json(
-        {
-          error: "Only customers can access their jobs.",
-        },
+        { error: "Only customers can access their jobs." },
         { status: 403 }
       );
     }
 
-    // 3. Find the customer's profile
     const customer = await prisma.customerProfile.findUnique({
       where: {
         userId: session.user.id,
@@ -48,14 +41,11 @@ export async function GET() {
 
     if (!customer) {
       return NextResponse.json(
-        {
-          error: "Customer profile not found.",
-        },
+        { error: "Customer profile not found." },
         { status: 404 }
       );
     }
 
-    // 4. Get the customer's jobs
     const jobs = await prisma.job.findMany({
       where: {
         customerId: customer.id,
@@ -87,7 +77,7 @@ export async function GET() {
           },
         },
 
-        contract: {
+        contracts: {
           select: {
             id: true,
             status: true,
@@ -96,6 +86,19 @@ export async function GET() {
             startDate: true,
             deadline: true,
             completedAt: true,
+
+            provider: {
+              select: {
+                id: true,
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -109,9 +112,7 @@ export async function GET() {
     console.error("Failed to fetch customer jobs:", error);
 
     return NextResponse.json(
-      {
-        error: "Failed to fetch your jobs.",
-      },
+      { error: "Failed to fetch your jobs." },
       { status: 500 }
     );
   }

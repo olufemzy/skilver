@@ -1,8 +1,11 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { moderateJobPost } from "@/lib/ai";
+import { ApplicationStatus } from "@prisma/client";
+
 
 export const dynamic = "force-dynamic";
 
@@ -41,9 +44,34 @@ export async function GET(req: NextRequest) {
     const serviceType = searchParams.get("serviceType");
     const search = searchParams.get("search");
 
+    
     const where: any = {
       status,
     };
+
+    // Hide jobs this provider has already been rejected from.
+    const session = await getServerSession(authOptions);
+
+    if (session?.user?.id && session.user.role === "PROVIDER") {
+      const provider = await prisma.providerProfile.findUnique({
+        where: {
+          userId: session.user.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (provider) {
+        where.applications = {
+          none: {
+            providerId: provider.id,
+            status: ApplicationStatus.REJECTED,
+          },
+        };
+      }
+    }
+
 
     if (categorySlug) {
       where.category = {

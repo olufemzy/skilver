@@ -282,13 +282,13 @@ model Job {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  customer     CustomerProfile @relation(fields: [customerId], references: [id])
-  category     Category        @relation(fields: [categoryId], references: [id])
-  service      Service?        @relation(fields: [serviceId], references: [id])
+  customer CustomerProfile @relation(fields: [customerId], references: [id])
+  category Category        @relation(fields: [categoryId], references: [id])
+  service  Service?        @relation(fields: [serviceId], references: [id])
 
   skills       JobSkill[]
   applications Application[]
-  contract     Contract?
+  contracts    Contract[]
 
   @@index([customerId])
   @@index([categoryId])
@@ -336,7 +336,7 @@ model Application {
 
 model Contract {
   id          String    @id @default(cuid())
-  jobId       String    @unique
+  jobId       String
   customerId  String
   providerId  String
   agreedPrice Float
@@ -347,11 +347,12 @@ model Contract {
 
   workFiles Json
 
-  workMessage String?
-  submittedAt DateTime?
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  workMessage     String?
+  revisionMessage String?
+  submittedAt     DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   job         Job             @relation(fields: [jobId], references: [id])
   customer    CustomerProfile @relation("CustomerContracts", fields: [customerId], references: [id])

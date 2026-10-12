@@ -62,8 +62,20 @@ export default function JobApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [processingApplicationId, setProcessingApplicationId] =
+    useState<string | null>(null);
+
+  const [notice, setNotice] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
   useEffect(() => {
     if (!jobId) return;
+
+    let cancelled = false;
 
     const loadApplications = async () => {
       try {
@@ -82,9 +94,13 @@ export default function JobApplicationsPage() {
           );
         }
 
+        if (cancelled) return;
+
         setJob(data.job);
         setApplications(data.applications || []);
       } catch (err) {
+        if (cancelled) return;
+
         console.error(err);
 
         setError(
@@ -93,22 +109,89 @@ export default function JobApplicationsPage() {
             : "Failed to load applications"
         );
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     loadApplications();
-  }, [jobId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, refreshKey]);
+
+  const handleApplicationDecision = async (
+    applicationId: string,
+    action: "accept" | "reject"
+  ) => {
+    const confirmed = window.confirm(
+      action === "accept"
+        ? "Accept this application? A contract will be created, the job will move to IN_PROGRESS, and other pending applications will be rejected."
+        : "Are you sure you want to reject this application?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setProcessingApplicationId(applicationId);
+      setNotice(null);
+
+      const response = await fetch(
+        `/api/jobs/${jobId}/applications/${applicationId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ action }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            `Failed to ${action} application`
+        );
+      }
+
+      setNotice({
+        type: "success",
+        message:
+          data.message ||
+          `Application ${action === "accept" ? "accepted" : "rejected"} successfully.`,
+      });
+
+      setRefreshKey((current) => current + 1);
+    } catch (err) {
+      setNotice({
+        type: "error",
+        message:
+          err instanceof Error
+            ? err.message
+            : "Something went wrong. Please try again.",
+      });
+    } finally {
+      setProcessingApplicationId(null);
+    }
+  };
 
   const formatPrice = (
     price: number,
     currency: string
   ) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: currency || "NGN",
-      maximumFractionDigits: 0,
-    }).format(price);
+    try {
+      return new Intl.NumberFormat("en-NG", {
+        style: "currency",
+        currency: currency || "NGN",
+        maximumFractionDigits: 0,
+      }).format(price);
+    } catch {
+      return `${currency || "NGN"} ${price.toLocaleString("en-NG")}`;
+    }
   };
 
   const formatDate = (date: string) => {
@@ -180,6 +263,14 @@ export default function JobApplicationsPage() {
             <p className="text-gray-600 mt-2">
               {error}
             </p>
+
+            <button
+              type="button"
+              onClick={() => setRefreshKey((current) => current + 1)}
+              className="mt-5 rounded-xl bg-[#0E4A30] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#0b3d27]"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       </div>
@@ -226,6 +317,28 @@ export default function JobApplicationsPage() {
           </div>
         </div>
 
+        {/* Success and Error Messages */}
+        {notice && (
+          <div
+            role="alert"
+            className={`mb-6 rounded-xl border p-4 text-sm ${
+              notice.type === "success"
+                ? "border-green-200 bg-green-50 text-green-800"
+                : "border-red-200 bg-red-50 text-red-800"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {notice.type === "success" ? (
+                <CheckCircle size={18} />
+              ) : (
+                <XCircle size={18} />
+              )}
+
+              <span>{notice.message}</span>
+            </div>
+          </div>
+        )}
+
         {/* Empty State */}
         {applications.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-2xl p-10 text-center">
@@ -266,17 +379,10 @@ export default function JobApplicationsPage() {
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
                     <div className="flex items-start gap-4">
                       {/* Avatar */}
-                      {application.provider.user
-                        .avatarUrl ? (
+                      {application.provider.user.avatarUrl ? (
                         <img
-                          src={
-                            application.provider.user
-                              .avatarUrl
-                          }
-                          alt={
-                            application.provider.user
-                              .name
-                          }
+                          src={application.provider.user.avatarUrl}
+                          alt={application.provider.user.name}
                           className="w-14 h-14 rounded-full object-cover border border-gray-200"
                         />
                       ) : (
@@ -293,23 +399,16 @@ export default function JobApplicationsPage() {
                         </h2>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500">
-                          {application.provider.user
-                            .location && (
+                          {application.provider.user.location && (
                             <span className="inline-flex items-center gap-1">
                               <MapPin size={14} />
-                              {
-                                application.provider.user
-                                  .location
-                              }
+                              {application.provider.user.location}
                             </span>
                           )}
 
                           <span className="inline-flex items-center gap-1">
                             <Clock size={14} />
-                            Applied{" "}
-                            {formatDate(
-                              application.createdAt
-                            )}
+                            Applied {formatDate(application.createdAt)}
                           </span>
                         </div>
                       </div>
@@ -355,8 +454,7 @@ export default function JobApplicationsPage() {
 
                       {/* Portfolio */}
                       {application.portfolioLinks &&
-                        application.portfolioLinks
-                          .length > 0 && (
+                        application.portfolioLinks.length > 0 && (
                           <div className="mt-5">
                             <h3 className="text-sm font-semibold text-gray-900 mb-3">
                               Portfolio
@@ -418,8 +516,7 @@ export default function JobApplicationsPage() {
 
                             <p className="text-sm font-semibold text-gray-900">
                               {application.deliveryDays}{" "}
-                              {application.deliveryDays ===
-                              1
+                              {application.deliveryDays === 1
                                 ? "day"
                                 : "days"}
                             </p>
@@ -433,8 +530,7 @@ export default function JobApplicationsPage() {
                           Skills
                         </h3>
 
-                        {application.provider.skills
-                          .length > 0 ? (
+                        {application.provider.skills.length > 0 ? (
                           <div className="flex flex-wrap gap-2">
                             {application.provider.skills.map(
                               ({ skill }) => (
@@ -466,26 +562,97 @@ export default function JobApplicationsPage() {
                   </div>
                 </div>
 
-                {/* Current Status */}
+                {/* Pending Application Actions */}
                 {application.status === "PENDING" && (
                   <div className="px-6 py-4 bg-amber-50 border-t border-amber-100">
-                    <div className="flex items-center gap-2 text-sm text-amber-800">
-                      <Clock size={16} />
-                      <span>
-                        This application is waiting for
-                        your review.
-                      </span>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex items-center gap-2 text-sm text-amber-800">
+                        <Clock size={16} />
+                        <span>
+                          This application is waiting for your review.
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleApplicationDecision(
+                              application.id,
+                              "reject"
+                            )
+                          }
+                          disabled={processingApplicationId !== null}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {processingApplicationId === application.id ? (
+                            <Loader2
+                              size={16}
+                              className="animate-spin"
+                            />
+                          ) : (
+                            <XCircle size={16} />
+                          )}
+                          Reject
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleApplicationDecision(
+                              application.id,
+                              "accept"
+                            )
+                          }
+                          disabled={processingApplicationId !== null}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0E4A30] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0b3d27] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {processingApplicationId === application.id ? (
+                            <Loader2
+                              size={16}
+                              className="animate-spin"
+                            />
+                          ) : (
+                            <CheckCircle size={16} />
+                          )}
+                          Accept Application
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
 
+                {/* Accepted Status */}
                 {application.status === "ACCEPTED" && (
                   <div className="px-6 py-4 bg-green-50 border-t border-green-100">
                     <div className="flex items-center gap-2 text-sm text-green-800">
                       <CheckCircle size={16} />
                       <span>
-                        This provider has been selected
-                        for the job.
+                        This provider has been selected for the job.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Rejected Status */}
+                {application.status === "REJECTED" && (
+                  <div className="px-6 py-4 bg-red-50 border-t border-red-100">
+                    <div className="flex items-center gap-2 text-sm text-red-800">
+                      <XCircle size={16} />
+                      <span>
+                        This application has been rejected.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Withdrawn Status */}
+                {application.status === "WITHDRAWN" && (
+                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <XCircle size={16} />
+                      <span>
+                        This application was withdrawn by the provider.
                       </span>
                     </div>
                   </div>

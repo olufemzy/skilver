@@ -145,6 +145,7 @@ export async function POST(
      * Check whether this provider has already
      * applied for the job.
      */
+    
     const existingApplication =
       await prisma.application.findUnique({
         where: {
@@ -153,17 +154,45 @@ export async function POST(
             providerId: provider.id,
           },
         },
+        select: {
+          id: true,
+          status: true,
+        },
       });
 
     if (existingApplication) {
+      if (existingApplication.status === "REJECTED") {
+        return NextResponse.json(
+          {
+            error:
+              "Your previous application for this job was not selected. You cannot apply for the same job again.",
+            status: "REJECTED",
+          },
+          { status: 409 }
+        );
+      }
+
+      if (existingApplication.status === "WITHDRAWN") {
+        return NextResponse.json(
+          {
+            error:
+              "You previously withdrew your application for this job and cannot apply again.",
+            status: "WITHDRAWN",
+          },
+          { status: 409 }
+        );
+      }
+
       return NextResponse.json(
         {
           error:
-            "You have already applied for this job",
+            "You have already applied for this job.",
+          status: existingApplication.status,
         },
         { status: 409 }
       );
     }
+
 
     /*
      * Read request body.

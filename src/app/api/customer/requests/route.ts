@@ -68,7 +68,7 @@ export async function GET() {
             slug: true,
           },
         },
-        contract: {
+        contracts: {
           select: {
             id: true,
             status: true,

@@ -1,7 +1,9 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { ApplicationStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +25,34 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Find the logged-in provider's profile.
+    const provider = await prisma.providerProfile.findUnique({
+      where: {
+        userId: session.user.id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!provider) {
+      return NextResponse.json(
+        { error: "Provider profile not found" },
+        { status: 404 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
 
     const search = searchParams.get("search")?.trim() || "";
     const category = searchParams.get("category") || "";
     const serviceType = searchParams.get("serviceType") || "";
+
     const page = Math.max(
       Number(searchParams.get("page")) || 1,
       1
     );
+
     const pageSize = Math.min(
       Math.max(Number(searchParams.get("pageSize")) || 10, 1),
       50
@@ -39,6 +60,14 @@ export async function GET(req: NextRequest) {
 
     const where = {
       status: "OPEN" as const,
+
+      // Exclude jobs this provider has already been rejected from.
+      applications: {
+        none: {
+          providerId: provider.id,
+          status: ApplicationStatus.REJECTED,
+        },
+      },
 
       ...(category
         ? {
@@ -127,6 +156,7 @@ export async function GET(req: NextRequest) {
         },
       }),
 
+      // Count only jobs that match the same filters.
       prisma.job.count({
         where,
       }),
@@ -140,10 +170,7 @@ export async function GET(req: NextRequest) {
       hasMore: page * pageSize < total,
     });
   } catch (error) {
-    console.error(
-      "Failed to fetch provider jobs:",
-      error
-    );
+    console.error("Failed to fetch provider jobs:", error);
 
     return NextResponse.json(
       {

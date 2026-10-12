@@ -117,7 +117,7 @@ export async function GET(
           },
         },
 
-        contract: {
+        contracts: {
           select: {
             id: true,
             agreedPrice: true,
@@ -144,6 +144,40 @@ export async function GET(
         { status: 404 }
       );
     }
+    
+    /*
+     * Get the current provider's application status for this job.
+     * This does not expose other providers' application statuses.
+     */
+    let applicationStatus: string | null = null;
+
+    if (session.user.role === "PROVIDER") {
+      const provider = await prisma.providerProfile.findUnique({
+        where: {
+          userId: session.user.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (provider) {
+        const application = await prisma.application.findUnique({
+          where: {
+            jobId_providerId: {
+              jobId: job.id,
+              providerId: provider.id,
+            },
+          },
+          select: {
+            status: true,
+          },
+        });
+
+        applicationStatus = application?.status ?? null;
+      }
+    }
+
 
     /*
      * Only expose applications to the customer who owns the job.
@@ -167,6 +201,7 @@ export async function GET(
         id: session.user.id,
         role: session.user.role,
         isOwner,
+        applicationStatus,
       },
     };
 

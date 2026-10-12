@@ -217,7 +217,7 @@ export default function CustomerJobsPage() {
         </div>
 
         <Link
-          href="/customer/post-jobs"
+          href="/customer/post-job"
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-800"
         >
           <Plus size={17} />
