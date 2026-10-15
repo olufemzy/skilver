@@ -48,7 +48,10 @@ export async function POST(
 
       if (revisionMessage.trim().length > 5000) {
         return NextResponse.json(
-          { message: "Revision instructions cannot exceed 5000 characters." },
+          {
+            message:
+              "Revision instructions cannot exceed 5000 characters.",
+          },
           { status: 400 }
         );
       }
@@ -88,15 +91,21 @@ export async function POST(
     if (contract.status !== JobStatus.SUBMITTED) {
       return NextResponse.json(
         {
-          message: "Only submitted work can be approved or sent for revision.",
+          message:
+            "Only submitted work can be approved or sent for revision.",
         },
         { status: 400 }
       );
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const updatedContract = await tx.contract.update({
-        where: { id: contract.id },
+      // Update only the contract being reviewed.
+      const updatedContract = await tx.contract.updateMany({
+        where: {
+          id: contract.id,
+          customerId: customer.id,
+          status: JobStatus.SUBMITTED,
+        },
         data:
           action === "approve"
             ? {
@@ -110,17 +119,52 @@ export async function POST(
               },
       });
 
-      await tx.job.update({
-        where: { id: contract.jobId },
-        data: {
-          status:
-            action === "approve"
-              ? JobStatus.COMPLETED
-              : JobStatus.REVISION_REQUESTED,
-        },
+      // Protect against a second review of an already-reviewed contract.
+      if (updatedContract.count === 0) {
+        throw new Error(
+          "This contract has already been reviewed. Refresh the page and try again."
+        );
+      }
+
+      // Read all contract statuses after updating this contract.
+      const contracts = await tx.contract.findMany({
+        where: { jobId: contract.jobId },
+        select: { status: true },
       });
 
-      return updatedContract;
+      const allCompleted =
+        contracts.length > 0 &&
+        contracts.every(
+          (item) => item.status === JobStatus.COMPLETED
+        );
+      const activeStatuses: JobStatus[] = [
+        JobStatus.IN_PROGRESS,
+        JobStatus.SUBMITTED,
+        JobStatus.REVISION_REQUESTED,
+      ];
+
+      const anyActive = contracts.some((item) =>
+        activeStatuses.includes(item.status)
+      );
+
+      // A job is complete only when every contract is complete.
+      // Otherwise, keep it active while any contract is unfinished.
+      const nextJobStatus = allCompleted
+        ? JobStatus.COMPLETED
+        : anyActive
+          ? JobStatus.IN_PROGRESS
+          : undefined;
+
+      if (nextJobStatus) {
+        await tx.job.update({
+          where: { id: contract.jobId },
+          data: { status: nextJobStatus },
+        });
+      }
+
+      return tx.contract.findUnique({
+        where: { id: contract.id },
+      });
     });
 
     return NextResponse.json({
@@ -133,8 +177,18 @@ export async function POST(
   } catch (error) {
     console.error("Contract review error:", error);
 
+    const message =
+      error instanceof Error ? error.message : "";
+
+    if (message.includes("already been reviewed")) {
+      return NextResponse.json({ message }, { status: 409 });
+    }
+
     return NextResponse.json(
-      { message: "An unexpected error occurred while reviewing the work." },
+      {
+        message:
+          "An unexpected error occurred while reviewing the work.",
+      },
       { status: 500 }
     );
   }

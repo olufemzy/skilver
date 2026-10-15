@@ -120,6 +120,7 @@ export async function GET(
         contracts: {
           select: {
             id: true,
+            providerId: true,
             agreedPrice: true,
             currency: true,
             startDate: true,
@@ -144,10 +145,9 @@ export async function GET(
         { status: 404 }
       );
     }
-    
+
     /*
-     * Get the current provider's application status for this job.
-     * This does not expose other providers' application statuses.
+     * Get the current provider's application status.
      */
     let applicationStatus: string | null = null;
 
@@ -178,10 +178,8 @@ export async function GET(
       }
     }
 
-
     /*
-     * Only expose applications to the customer who owns the job.
-     * Providers should not see other providers' applications.
+     * Only the job owner and admins can see applications.
      */
     const isOwner =
       session.user.role === "CUSTOMER" &&
@@ -189,14 +187,61 @@ export async function GET(
 
     const isAdmin = session.user.role === "ADMIN";
 
+    let visibleApplications =
+      isOwner || isAdmin ? job.applications : [];
+
+    /*
+     * Calculate each provider's completed contracts.
+     *
+     * Do not rely on ProviderProfile.jobsCompleted,
+     * because that stored counter may be outdated.
+     */
+    if (visibleApplications.length > 0) {
+      const providerIds = [
+        ...new Set(
+          visibleApplications.map(
+            (application) => application.providerId
+          )
+        ),
+      ];
+
+      const completedContracts = await prisma.contract.groupBy({
+        by: ["providerId"],
+        where: {
+          providerId: {
+            in: providerIds,
+          },
+          status: "COMPLETED",
+        },
+        _count: {
+          _all: true,
+        },
+      });
+
+      const completedCountByProviderId = new Map(
+        completedContracts.map((item) => [
+          item.providerId,
+          item._count._all,
+        ])
+      );
+
+      visibleApplications = visibleApplications.map(
+        (application) => ({
+          ...application,
+          provider: {
+            ...application.provider,
+            jobsCompleted:
+              completedCountByProviderId.get(
+                application.providerId
+              ) ?? 0,
+          },
+        })
+      );
+    }
+
     const responseJob = {
       ...job,
-
-      applications:
-        isOwner || isAdmin
-          ? job.applications
-          : [],
-
+      applications: visibleApplications,
       currentUser: {
         id: session.user.id,
         role: session.user.role,

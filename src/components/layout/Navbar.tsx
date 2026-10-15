@@ -31,7 +31,7 @@ export default function Navbar() {
             <div className="w-9 h-9 rounded-lg flex items-center justify-center">
               <Image alt="SkilVer Logo" src="/logo/logo.png" width={130} height={60} />
             </div>
-            <span className="font-display text-xl text-primary-900 font-semibold hidden sm:block">SkilVer</span>
+            <span className="font-display text-xl text-primary-900 font-semibold sm:block">SkilVer</span>
           </Link>
 
           {/* Desktop nav */}

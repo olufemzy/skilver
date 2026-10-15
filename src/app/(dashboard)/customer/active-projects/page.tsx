@@ -14,29 +14,42 @@ import {
   Eye,
 } from "lucide-react";
 
-type Project = {
+type Contract = {
+  id: string;
+  status: string;
+  agreedPrice: number;
+  currency: string;
+  startDate: string;
+  deadline: string | null;
+  completedAt: string | null;
+  provider: {
+    id: string;
+    user: {
+      id: string;
+      name: string | null;
+      avatarUrl: string | null;
+    };
+  };
+};
+
+type Job = {
   id: string;
   title: string;
   description: string;
   status: string;
-  contract: {
-    id: string;
-    status: string;
-    agreedPrice: number;
-    currency: string;
-    startDate: string;
-    deadline: string | null;
-    completedAt: string | null;
-    provider: {
-      id: string;
-      user: {
-        id: string;
-        name: string | null;
-        avatarUrl: string | null;
-      };
-    };
-  };
+  contracts: Contract[];
 };
+
+// Each displayed project represents one job-provider contract.
+type Project = Omit<Job, "contracts"> & {
+  contract: Contract;
+};
+
+const ACTIVE_CONTRACT_STATUSES = [
+  "IN_PROGRESS",
+  "SUBMITTED",
+  "REVISION_REQUESTED",
+];
 
 function formatPrice(amount: number, currency = "NGN") {
   if (currency === "NGN") {
@@ -103,17 +116,31 @@ export default function CustomerActiveProjectsPage() {
         );
       }
 
-      const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+      const jobs: Job[] = Array.isArray(data.jobs)
+        ? data.jobs
+        : [];
 
-      const activeProjects = jobs.filter(
-        (job: Project) =>
-          job.contract &&
-          [
-            "IN_PROGRESS",
-            "SUBMITTED",
-            "REVISION_REQUESTED",
-          ].includes(job.contract.status)
-      );
+      /*
+       * A job can now have multiple contracts.
+       * Create one display item for each active contract.
+       */
+      const activeProjects: Project[] = jobs.flatMap((job) => {
+        const contracts = Array.isArray(job.contracts)
+          ? job.contracts
+          : [];
+
+        return contracts
+          .filter((contract) =>
+            ACTIVE_CONTRACT_STATUSES.includes(contract.status)
+          )
+          .map((contract) => ({
+            id: job.id,
+            title: job.title,
+            description: job.description,
+            status: job.status,
+            contract,
+          }));
+      });
 
       setProjects(activeProjects);
     } catch (err) {
@@ -132,6 +159,18 @@ export default function CustomerActiveProjectsPage() {
   useEffect(() => {
     loadProjects();
   }, []);
+
+  const inProgressCount = projects.filter(
+    (project) => project.contract.status === "IN_PROGRESS"
+  ).length;
+
+  const submittedCount = projects.filter(
+    (project) => project.contract.status === "SUBMITTED"
+  ).length;
+
+  const revisionCount = projects.filter(
+    (project) => project.contract.status === "REVISION_REQUESTED"
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -166,13 +205,11 @@ export default function CustomerActiveProjectsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="card-base p-5">
             <p className="text-sm text-gray-500">
-              Active Projects
+              Active Contracts
             </p>
+
             <p className="mt-2 text-2xl font-bold text-gray-900">
-              {projects.filter(
-                (project) =>
-                  project.contract.status === "IN_PROGRESS"
-              ).length}
+              {inProgressCount}
             </p>
           </div>
 
@@ -180,11 +217,9 @@ export default function CustomerActiveProjectsPage() {
             <p className="text-sm text-gray-500">
               Awaiting Your Review
             </p>
+
             <p className="mt-2 text-2xl font-bold text-purple-700">
-              {projects.filter(
-                (project) =>
-                  project.contract.status === "SUBMITTED"
-              ).length}
+              {submittedCount}
             </p>
           </div>
 
@@ -192,11 +227,9 @@ export default function CustomerActiveProjectsPage() {
             <p className="text-sm text-gray-500">
               Revision Requested
             </p>
+
             <p className="mt-2 text-2xl font-bold text-orange-700">
-              {projects.filter(
-                (project) =>
-                  project.contract.status === "REVISION_REQUESTED"
-              ).length}
+              {revisionCount}
             </p>
           </div>
         </div>
@@ -248,7 +281,7 @@ export default function CustomerActiveProjectsPage() {
 
           <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
             When you accept a provider&apos;s application, the
-            resulting project will appear here. Projects awaiting
+            resulting contract will appear here. Contracts awaiting
             your review will also be listed.
           </p>
 
@@ -262,7 +295,7 @@ export default function CustomerActiveProjectsPage() {
         </div>
       )}
 
-      {/* Projects */}
+      {/* Projects: one card per active contract */}
       {!loading && !error && projects.length > 0 && (
         <div className="space-y-4">
           {projects.map((project) => {
@@ -317,6 +350,7 @@ export default function CustomerActiveProjectsPage() {
                         <p className="text-xs text-gray-500">
                           Hired Provider
                         </p>
+
                         <p className="text-sm font-semibold text-gray-900">
                           {providerName}
                         </p>
@@ -329,6 +363,7 @@ export default function CustomerActiveProjectsPage() {
                         <p className="text-xs text-gray-500">
                           Agreed Price
                         </p>
+
                         <p className="mt-1 font-semibold text-gray-900">
                           {formatPrice(
                             contract.agreedPrice,
@@ -342,6 +377,7 @@ export default function CustomerActiveProjectsPage() {
                           <Calendar size={13} />
                           Start Date
                         </p>
+
                         <p className="mt-1 text-sm font-medium text-gray-900">
                           {formatDate(contract.startDate)}
                         </p>
@@ -352,6 +388,7 @@ export default function CustomerActiveProjectsPage() {
                           <Clock size={13} />
                           Delivery Deadline
                         </p>
+
                         <p className="mt-1 text-sm font-medium text-gray-900">
                           {formatDate(contract.deadline)}
                         </p>

@@ -139,7 +139,7 @@ export default function DashboardSidebar() {
         {/* Header */}
         <div className="p-5 border-b border-gray-100">
           <div className="flex items-center justify-between">
-            <Link
+            {/* <Link
               href="/"
               onClick={closeMobileMenu}
               className="flex items-center gap-2"
@@ -151,6 +151,18 @@ export default function DashboardSidebar() {
               </div>
 
               <span className="font-display text-lg text-primary-900">
+                SkilVer
+              </span>
+            </Link> */}
+            <Link 
+              href="/"
+              onClick={closeMobileMenu}
+              className="flex items-center gap-1">
+              <div className="w-8 h-8  rounded-lg flex items-center justify-center">
+                <Image alt="SkilVer Logo" src="/logo/logo.png" width={130} height={60} />
+              </div>
+
+              <span className="font-display text-lg text-primary-900 font-semibold">
                 SkilVer
               </span>
             </Link>

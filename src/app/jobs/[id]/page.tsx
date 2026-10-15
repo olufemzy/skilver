@@ -222,7 +222,7 @@ export default function JobDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="min-h-[100vh] flex items-center justify-center">
         <div className="flex items-center gap-3 text-gray-500">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span>Loading job details...</span>
@@ -233,7 +233,7 @@ export default function JobDetailPage({
 
   if (error || !job) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center px-4">
+      <div className="min-h-[100vh] flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
             <FileText className="w-6 h-6 text-red-500" />

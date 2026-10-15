@@ -31,7 +31,6 @@ export default async function ProviderDashboard() {
       id: true,
       verificationStatus: true,
       totalEarnings: true,
-      jobsCompleted: true,
       averageRating: true,
 
       contracts: {
@@ -94,6 +93,16 @@ export default async function ProviderDashboard() {
       </div>
     );
   }
+    /*
+    * Calculate the provider's actual completed contracts.
+    * This does not depend on the stored jobsCompleted field.
+    */
+    const completedContractsCount = await prisma.contract.count({
+      where: {
+        providerId: provider.id,
+        status: "COMPLETED",
+      },
+    });
 
   /*
    * Get recent open jobs.
@@ -144,7 +153,7 @@ export default async function ProviderDashboard() {
 
   const verificationStatus = provider.verificationStatus;
   const totalEarnings = provider.totalEarnings || 0;
-  const jobsCompleted = provider.jobsCompleted || 0;
+  const jobsCompleted = completedContractsCount;
   const averageRating = provider.averageRating || 0;
   const activeContracts = provider.contracts;
 
