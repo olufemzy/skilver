@@ -26,6 +26,7 @@ type Job = {
   deadline: string | null;
   providersNeeded: number;
   status: string;
+  serviceRequestStatus: "PENDING" | "ACCEPTED" | "DECLINED" | null;
   attachments: unknown;
   createdAt: string;
   updatedAt: string;
@@ -113,6 +114,7 @@ type Job = {
     id: string;
     role: string;
     isOwner: boolean;
+    canReviewApplications: boolean;
   };
 };
 
@@ -259,6 +261,15 @@ export default function JobDetailPage({
     );
   }
 
+  const displayStatus =
+  job.serviceRequestStatus === "DECLINED"
+    ? "DECLINED"
+    : job.serviceRequestStatus === "PENDING"
+      ? "PENDING"
+      : job.status;
+
+  const canReviewApplications = job.currentUser.canReviewApplications;
+
   const isCustomerOwner = job.currentUser.isOwner;
   const isProvider = job.currentUser.role === "PROVIDER";
   const isAdmin = job.currentUser.role === "ADMIN";
@@ -287,11 +298,9 @@ export default function JobDetailPage({
           <section className="bg-white border border-gray-200 rounded-2xl p-6">
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <span
-                className={`px-3 py-1 rounded-full border text-xs font-medium ${getStatusClasses(
-                  job.status
-                )}`}
+                className={`px-3 py-1 rounded-full border text-xs font-medium ${getStatusClasses(displayStatus)}`}
               >
-                {getStatusLabel(job.status)}
+                {getStatusLabel(displayStatus)}
               </span>
 
               <span className="px-3 py-1 rounded-full bg-gray-50 border border-gray-200 text-xs text-gray-600">
@@ -527,7 +536,7 @@ export default function JobDetailPage({
           )}
 
           {/* Customer applications */}
-          {(isCustomerOwner || isAdmin) &&
+          {(canReviewApplications || isAdmin) &&
             job.applications.length > 0 && (
               <section className="bg-white border border-gray-200 rounded-2xl p-6">
                 <div className="flex items-center justify-between gap-4">
@@ -592,7 +601,7 @@ export default function JobDetailPage({
         <aside className="space-y-6">
           {/* Main action */}
           <section className="bg-white border border-gray-200 rounded-2xl p-6 lg:sticky lg:top-6">
-            {isCustomerOwner ? (
+            {canReviewApplications ? (
               <>
                 <p className="text-sm text-gray-500">
                   Applications
@@ -648,10 +657,10 @@ export default function JobDetailPage({
 
                 <div
                   className={`mt-3 inline-flex px-3 py-1.5 rounded-full border text-sm font-medium ${getStatusClasses(
-                    job.status
+                    displayStatus
                   )}`}
                 >
-                  {getStatusLabel(job.status)}
+                  {getStatusLabel(displayStatus)}
                 </div>
               </>
             )}

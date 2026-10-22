@@ -26,6 +26,7 @@ import {
   X,
   GraduationCap,
   BriefcaseBusiness,
+  History,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Avatar from '@/components/ui/Avatar'
@@ -38,9 +39,11 @@ const PROVIDER_LINKS = [
   { href: '/provider/services', icon: Tags, label: 'My Services' },
   { href: '/provider/jobs', icon: Briefcase, label: 'Browse Jobs' },
   { href: '/provider/applications', icon: FileText, label: 'Applications' },
+  { href: '/provider/service-requests', icon: History, label: 'Service Request History' },
   { href: '/provider/messages', icon: MessageSquare, label: 'Messages' },
   { href: '/provider/earnings', icon: DollarSign, label: 'Earnings' },
-]
+];
+
 
 const CUSTOMER_LINKS = [
   { href: '/customer', icon: LayoutDashboard, label: 'Dashboard' },

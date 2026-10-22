@@ -107,6 +107,23 @@ export async function POST(
       );
     }
 
+    
+    /*
+    * Direct service requests must be handled by
+    * the service-owning provider, not through
+    * the ordinary job application workflow.
+    */
+    if (job.serviceRequestStatus !== null) {
+      return NextResponse.json(
+        {
+          error:
+            "This is a direct service request. You cannot apply through the ordinary job application process.",
+        },
+        { status: 400 }
+      );
+    }
+    
+
     /*
      * Applications are only allowed while
      * the job is still open.

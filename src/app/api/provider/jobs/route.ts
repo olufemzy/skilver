@@ -61,6 +61,9 @@ export async function GET(req: NextRequest) {
     const where = {
       status: "OPEN" as const,
 
+      // Exclude service requests from the ordinary jobs list.
+      serviceRequestStatus: null,
+
       // Exclude jobs this provider has already been rejected from.
       applications: {
         none: {

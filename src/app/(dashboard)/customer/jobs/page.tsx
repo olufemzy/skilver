@@ -36,6 +36,7 @@ type Job = {
   deadline: string | null;
   providersNeeded: number;
   status: JobStatus;
+  serviceRequestStatus: "PENDING" | "ACCEPTED" | "DECLINED" | null;
   createdAt: string;
 
   category: {
@@ -179,7 +180,9 @@ export default function CustomerJobsPage() {
     return {
       total: jobs.length,
 
-      open: jobs.filter((job) => job.status === "OPEN").length,
+      open: jobs.filter((job) => 
+        job.serviceRequestStatus === "PENDING" || (job.serviceRequestStatus === null && job.status === "OPEN")
+      ).length,
 
       inProgress: jobs.filter(
         (job) =>
@@ -195,8 +198,14 @@ export default function CustomerJobsPage() {
   }, [jobs]);
 
   const filteredJobs = useMemo(() => {
-    if (activeFilter === "ALL") {
-      return jobs;
+    if (activeFilter === "ALL") return jobs;
+
+    if (activeFilter === "OPEN") {
+      return jobs.filter(
+        (job) =>
+          job.serviceRequestStatus === "PENDING" ||
+          (job.serviceRequestStatus === null && job.status === "OPEN")
+      );
     }
 
     return jobs.filter((job) => job.status === activeFilter);
@@ -437,8 +446,25 @@ export default function CustomerJobsPage() {
           filteredJobs.length > 0 && (
             <div className="divide-y divide-gray-100">
               {filteredJobs.map((job) => {
+                const displayStatus =
+                  job.serviceRequestStatus === "DECLINED"
+                    ? "DECLINED"
+                    : job.serviceRequestStatus === "PENDING"
+                      ? "PENDING"
+                      : job.status;
+
                 const status =
-                  statusConfig[job.status];
+                  displayStatus in statusConfig
+                    ? statusConfig[displayStatus as JobStatus]
+                    : {
+                        label: displayStatus,
+                        className:
+                          displayStatus === "PENDING"
+                            ? "bg-amber-100 text-amber-700"
+                            : displayStatus === "DECLINED"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-green-100 text-green-700",
+                      };
 
                 return (
                   <div

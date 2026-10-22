@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { VerificationBadge } from "@/components/ui/Badge";
+import ServiceRequests from "@/components/provider/ServiceRequests";
+import ServiceRequestHistory from "@/components/provider/ServiceRequestHistory";
 
 export default async function ProviderDashboard() {
   const session = await getServerSession(authOptions);
@@ -115,6 +117,7 @@ export default async function ProviderDashboard() {
   const recentJobs = await prisma.job.findMany({
     where: {
       status: "OPEN",
+      serviceRequestStatus: null,
 
       // Exclude jobs this provider has been rejected from.
       applications: {
@@ -277,6 +280,9 @@ export default async function ProviderDashboard() {
         ))}
       </div>
 
+      {/* Incoming service requests */}
+      <ServiceRequests />
+
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Active jobs */}
         <div>
@@ -389,6 +395,8 @@ export default async function ProviderDashboard() {
           )}
         </div>
       </div>
+
+      <ServiceRequestHistory limit={3} />
     </div>
   );
 }

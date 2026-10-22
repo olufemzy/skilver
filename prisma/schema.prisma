@@ -30,6 +30,12 @@ enum JobStatus {
   DISPUTED
 }
 
+enum ServiceRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 enum ApplicationStatus {
   PENDING
   ACCEPTED
@@ -273,6 +279,7 @@ model Job {
   deadline        DateTime?
   providersNeeded Int         @default(1)
   status          JobStatus   @default(OPEN)
+  serviceRequestStatus ServiceRequestStatus?
 
   attachments Json
 

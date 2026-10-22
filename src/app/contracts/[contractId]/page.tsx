@@ -2,7 +2,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 type WorkFile = {
   name: string;
@@ -38,7 +39,9 @@ type Contract = {
 };
 
 export default function ContractDetailsPage() {
+
   const params = useParams<{ contractId: string }>();
+  const router = useRouter();
   const contractId = params.contractId;
 
   const [contract, setContract] = useState<Contract | null>(null);
@@ -258,8 +261,14 @@ export default function ContractDetailsPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-4xl p-6">
-        <p className="text-gray-600">Loading contract...</p>
+      <main className="flex min-h-[100vh] gap-2 items-center justify-center">
+        <Loader2
+          size={23}
+          className="animate-spin"
+        />
+        <p className="text-gray-600">
+          Loading contract...
+          </p>
       </main>
     );
   }
@@ -306,6 +315,25 @@ export default function ContractDetailsPage() {
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
+      <button
+        type="button"
+        onClick={() => {
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push(
+              contract.currentUserRole === "PROVIDER"
+                ? "/provider"
+                : "/customer/active-projects"
+            );
+          }
+        }}
+        className="inline-flex items-center gap-2 text-base text-gray-600 hover:text-[#0E4A30] mb-1"
+        // className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-green-800 hover:text-green-800"
+      >
+        <ArrowLeft size={16} />
+        Back
+      </button>
       <header>
         <p className="text-sm font-medium text-green-800">
           Contract details

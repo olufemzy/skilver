@@ -179,16 +179,22 @@ export async function GET(
     }
 
     /*
-     * Only the job owner and admins can see applications.
-     */
+    * Identify the actual customer who owns the job record.
+    */
     const isOwner =
       session.user.role === "CUSTOMER" &&
       job.customer.user.id === session.user.id;
 
     const isAdmin = session.user.role === "ADMIN";
 
+    /*
+    * Direct service requests are not normal job posts.
+    * Their customers must not manage job applications.
+    */
+    const canReviewApplications = isAdmin || (isOwner && job.service === null);
+
     let visibleApplications =
-      isOwner || isAdmin ? job.applications : [];
+      canReviewApplications ? job.applications : [];
 
     /*
      * Calculate each provider's completed contracts.
@@ -241,11 +247,21 @@ export async function GET(
 
     const responseJob = {
       ...job,
+
       applications: visibleApplications,
+
+      _count: {
+        ...job._count,
+        applications: canReviewApplications
+          ? job._count.applications
+          : 0,
+      },
+
       currentUser: {
         id: session.user.id,
         role: session.user.role,
         isOwner,
+        canReviewApplications,
         applicationStatus,
       },
     };

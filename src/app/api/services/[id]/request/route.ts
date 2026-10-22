@@ -170,10 +170,12 @@ export async function POST(
 
         status: "OPEN",
 
-        attachments:
-          Array.isArray(attachments)
-            ? attachments
-            : [],
+        // Marks this as a request for a provider's published service.
+        serviceRequestStatus: "PENDING",
+
+        attachments: Array.isArray(attachments)
+          ? attachments
+          : [],
 
         isAiReviewed: false,
       },
